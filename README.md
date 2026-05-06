@@ -23,4 +23,3 @@ online-voting-system/
 │ ├── public/
 │ └── package.json
 └── README.md
-EOF
