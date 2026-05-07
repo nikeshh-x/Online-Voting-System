@@ -1,45 +1,66 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import api from "./services/api";
+import Layout from "./components/Layout";
+import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import DashboardPage from "./pages/DashboardPage";
+import ElectionsPage from "./pages/ElectionsPage";
+import ResultsPage from "./pages/ResultsPage";
+import ProfilePage from "./pages/ProfilePage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 const App = () => {
-  const [apiStatus, setApiStatus] = useState("Checking...");
-
-  useEffect(() => {
-    api
-      .get("/health/")
-      .then((response) => {
-        setApiStatus("Connected");
-        console.log("API Response:", response.data);
-      })
-      .catch((error) => {
-        setApiStatus("Disconnected");
-        console.error("API Error", error);
-      });
-  }, []);
-
   return (
     <Router>
       <Routes>
         <Route
-          path="/"
+          path="/dashboard"
           element={
-            <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-600 to-purple-700">
-              <div className="text-center bg-white p-8 rounded-lg shadow-xl">
-                <h1 className="text-3xl font-bold text-gray-800">
-                  Online Voting System
-                </h1>
-                <p className="mt-2 text-gray-600">
-                  Backend Status: {apiStatus}
-                </p>
-                <div className="mt-4 text-sm text-gray-500">
-                  <p>Backend URL: http://localhost:8000/api/</p>
-                  <p>Frontend URL: http://localhost:5173</p>
-                </div>
-              </div>
-            </div>
+            <Layout>
+              <DashboardPage />
+            </Layout>
           }
         />
+        <Route path="*" element={<NotFoundPage />} />
+        {/* Routes with Sidebar */}
+        <Route
+          path="/"
+          element={
+            <Layout>
+              <HomePage />
+            </Layout>
+          }
+        />
+        <Route
+          path="/elections"
+          element={
+            <Layout>
+              <ElectionsPage />
+            </Layout>
+          }
+        />
+        <Route
+          path="/results"
+          element={
+            <Layout>
+              <ResultsPage />
+            </Layout>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <Layout>
+              <ProfilePage />
+            </Layout>
+          }
+        />
+
+        {/* Routes without Sidebar (Auth pages) */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Router>
   );
