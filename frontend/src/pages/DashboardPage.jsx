@@ -70,22 +70,6 @@ const DashboardPage= () => {
 
   const statCards = [
     { 
-      title: 'Total Citizens', 
-      value: stats.totalCitizens, 
-      icon: Users, 
-      color: 'bg-blue-500',
-      change: '+12%',
-      changeColor: 'text-green-500'
-    },
-    { 
-      title: 'Registered Voters', 
-      value: stats.registeredVoters, 
-      icon: CheckCircle, 
-      color: 'bg-green-500',
-      change: '+8%',
-      changeColor: 'text-green-500'
-    },
-    { 
       title: 'Active Elections', 
       value: stats.activeElections, 
       icon: Clock, 

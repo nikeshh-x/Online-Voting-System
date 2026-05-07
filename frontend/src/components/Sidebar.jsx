@@ -19,16 +19,17 @@ const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  // Navigation items (remove Home since it's public)
   const navItems = [
-    { name: "Dashboard", path: "/", icon: LayoutDashboard },
+    { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Elections", path: "/elections", icon: Vote },
     { name: "Results", path: "/results", icon: BarChart3 },
     { name: "Profile", path: "/profile", icon: UserCircle },
   ];
 
   const authItems = [
-    { name: 'Login', path: '/login', icon: LogIn },
-    { name: 'Register', path: '/register', icon: UserPlus },
+    { name: "Login", path: "/login", icon: LogIn },
+    { name: "Register", path: "/register", icon: UserPlus },
   ];
 
   const isActive = (path) => location.pathname === path;
