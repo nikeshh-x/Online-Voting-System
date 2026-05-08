@@ -174,3 +174,6 @@ REST_FRAMEWORK = {
         'user': '100/day',
     },
 }
+
+
+AUTH_USER_MODEL = 'accounts.User'

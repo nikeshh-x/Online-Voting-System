@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.contrib.auth.models import AbstractUser
 
 class Citizen(models.Model):
     GENDER_CHOICES = [
@@ -34,3 +34,21 @@ class Citizen(models.Model):
         verbose_name = 'Citizen'
         verbose_name_plural = 'Citizens'
         ordering = ['-created_at']
+
+class User(AbstractUser):
+    citizen = models.OneToOneField(Citizen, on_delete=models.SET_NULL, null=True, blank=True, related_name='user')
+    email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=15, blank=True, null=True)
+    is_email_verified = models.BooleanField(default=False)
+    email_verification_token = models.UUIDField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        if self.citizen and self.citizen.full_name:
+            return f"{self.email} ({self.citizen.full_name})"
+        return self.email
+    
+    class Meta:
+        db_table = 'users'
+        verbose_name = 'User'
+        verbose_name_plural = 'Users'
