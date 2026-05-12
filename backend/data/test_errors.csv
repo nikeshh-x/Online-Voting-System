@@ -1,0 +1,7 @@
+citizenship_number,full_name,date_of_birth,district,municipality,ward_number,father_name,mother_name,gender
+99-99-99-99999,Valid User,1990-01-01,Kathmandu,Kathmandu Metro,5,Valid Father,Valid Mother,M
+INVALID-SS,Invalid Format,1990-01-01,Kathmandu,Kathmandu Metro,5,Father Name,Mother Name,M
+,Missing Name,1990-01-01,Kathmandu,Kathmandu Metro,5,Father Name,Mother Name,M
+11-22-33-45567,Under Age,2020-01-01,Kathmandu,Kathmandu Metro,5,Father Name,Mother Name,M
+11-22-33-45568,Invalid Gender,1990-01-01,Kathmandu,Kathmandu Metro,5,Father Name,Mother Name,X
+11-22-33-45569,Invalid Ward,1990-01-01,Kathmandu,Kathmandu Metro,99,Father Name,Mother Name,M
