@@ -1,0 +1,51 @@
+citizenship_number,full_name,date_of_birth,district,municipality,ward_number,father_name,mother_name,gender
+10-68-18-10050,Shyam Karki,1983-09-26,Bhaktapur,Changunarayan,2,Bikram Karki,Laxmi Karki,F
+11-29-15-10020,Sunita Tamang,1957-06-12,Kaski,Annapurna,13,Ram Tamang,Radha Tamang,M
+11-78-29-10002,Gita Rai,1978-06-19,Morang,Biratnagar,8,Gita Rai,Sita Rai,F
+17-14-48-10016,Rajesh Karki,1951-01-05,Kaski,Annapurna,8,Sunita Karki,Radha Karki,M
+17-55-56-10046,Laxmi Manandhar,1974-03-11,Kaski,Annapurna,10,Uma Manandhar,Mina Manandhar,O
+18-52-90-10047,Bikram Bhandari,1982-10-04,Sunsari,Itahari,11,Bikram Bhandari,Radha Bhandari,F
+22-44-15-10033,Sita Rai,1974-11-18,Jhapa,Mechinagar,12,Suresh Rai,Rita Rai,F
+22-81-75-10024,Sima Thapa,1967-07-16,Bhaktapur,Madhyapur Thimi,2,Ram Thapa,Sita Thapa,F
+23-49-91-10018,Mina Gurung,1982-08-26,Chitwan,Khairhani,4,Krishna Gurung,Sita Gurung,O
+25-91-50-10006,Laxmi Poudel,1977-12-27,Lalitpur,Mahalaxmi,15,Sima Poudel,Mina Poudel,F
+26-25-10-10039,Bikram Sharma,1991-07-10,Lalitpur,Lalitpur Metro,9,Mohan Sharma,Laxmi Sharma,M
+26-74-47-10045,Hari Gurung,1984-07-16,Sunsari,Dharan,7,Hari Gurung,Radha Gurung,O
+27-53-76-10030,Sujata Poudel,1970-04-22,Chitwan,Ratnanagar,8,Prakash Poudel,Mina Poudel,O
+30-15-42-10015,Gita Rai,1956-12-11,Kathmandu,Kathmandu Metro,13,Sunita Rai,Rita Rai,F
+31-57-89-10003,Rajesh Tamang,2001-12-10,Pokhara,Pokhara Metro,11,Nabin Tamang,Laxmi Tamang,O
+31-67-11-10043,Sujata Karki,1974-01-04,Morang,Sundar Haraicha,9,Shyam Karki,Gita Karki,F
+32-58-11-10012,Shyam Thapa,1953-03-07,Sunsari,Dharan,14,Hari Thapa,Mina Thapa,O
+35-46-11-10014,Sujata Poudel,1992-09-23,Lalitpur,Lalitpur Metro,12,Radha Poudel,Gita Poudel,F
+37-91-13-10019,Mina Tamang,1999-10-04,Chitwan,Bharatpur,3,Rajesh Tamang,Mina Tamang,M
+37-94-58-10027,Radha Bhandari,1993-07-29,Pokhara,Pokhara Metro,14,Uma Bhandari,Gita Bhandari,F
+40-39-46-10007,Sita Manandhar,1960-03-02,Bhaktapur,Changunarayan,15,Laxmi Manandhar,Radha Manandhar,M
+40-69-87-10035,Uma Manandhar,1985-08-18,Morang,Biratnagar,10,Prakash Manandhar,Sita Manandhar,O
+43-59-71-10004,Bikram Thapa,1964-01-14,Lalitpur,Mahalaxmi,15,Shyam Thapa,Mina Thapa,O
+43-67-33-10049,Sima Poudel,1982-03-15,Dhading,Netrawati,1,Laxmi Poudel,Laxmi Poudel,O
+49-28-85-10005,Rajesh Manandhar,1974-09-12,Kaski,Pokhara Metro,4,Shyam Manandhar,Gita Manandhar,F
+54-63-72-10017,Bikram Tamang,1964-03-12,Sunsari,Itahari,12,Krishna Tamang,Sita Tamang,O
+57-12-61-10032,Krishna Adhikari,1977-11-30,Morang,Sundar Haraicha,10,Radha Adhikari,Rita Adhikari,F
+57-43-98-10022,Suresh Rai,1991-03-24,Kaski,Annapurna,10,Sima Rai,Mina Rai,O
+62-28-13-10042,Nabin Thapa,1950-04-20,Dhading,Netrawati,6,Uma Thapa,Rita Thapa,M
+62-49-34-10029,Bikram Rai,1966-02-27,Pokhara,Pokhara Metro,8,Laxmi Rai,Laxmi Rai,O
+62-60-15-10028,Ram Thapa,1979-06-26,Kathmandu,Kathmandu Metro,15,Gita Thapa,Mina Thapa,F
+64-12-70-10008,Uma Tamang,1974-12-01,Bhaktapur,Madhyapur Thimi,2,Uma Tamang,Rita Tamang,O
+68-27-70-10026,Suresh Gurung,1993-04-01,Kaski,Annapurna,3,Sunita Gurung,Laxmi Gurung,F
+69-10-20-10009,Uma Poudel,1978-01-27,Dhading,Netrawati,3,Laxmi Poudel,Radha Poudel,F
+74-52-93-10025,Radha Tamang,1950-01-23,Pokhara,Pokhara Metro,15,Sujata Tamang,Gita Tamang,M
+74-96-69-10010,Radha Tamang,1976-09-11,Sunsari,Inaruwa,13,Sita Tamang,Radha Tamang,O
+75-34-27-10048,Mohan Rai,1983-04-20,Lalitpur,Godawari,15,Sunita Rai,Rita Rai,O
+75-92-57-10021,Gita Sharma,1972-03-11,Kathmandu,Chandragiri,12,Sujata Sharma,Gita Sharma,M
+78-59-35-10038,Ram Karki,1965-07-06,Morang,Biratnagar,12,Sima Karki,Radha Karki,F
+80-95-49-10013,Uma Rai,1984-10-25,Bhaktapur,Changunarayan,13,Uma Rai,Sita Rai,F
+84-55-51-10011,Krishna Adhikari,1964-09-26,Pokhara,Pokhara Metro,6,Suresh Adhikari,Radha Adhikari,F
+87-19-21-10041,Suresh Thapa,1978-08-04,Lalitpur,Godawari,7,Ram Thapa,Rita Thapa,O
+88-66-53-10001,Suresh Karki,1978-12-29,Morang,Biratnagar,15,Sujata Karki,Gita Karki,M
+89-68-66-10034,Sunita Poudel,1994-01-04,Kathmandu,Kathmandu Metro,12,Rita Poudel,Radha Poudel,M
+91-88-82-10040,Uma Sharma,1981-11-23,Kathmandu,Kirtipur,7,Mohan Sharma,Laxmi Sharma,F
+92-75-27-10044,Prakash Bhandari,2000-07-12,Jhapa,Mechinagar,14,Shyam Bhandari,Sita Bhandari,F
+93-50-74-10036,Sunita Manandhar,1967-08-27,Bhaktapur,Madhyapur Thimi,2,Prakash Manandhar,Laxmi Manandhar,F
+93-75-51-10031,Laxmi Thapa,1955-01-11,Lalitpur,Godawari,7,Hari Thapa,Gita Thapa,O
+93-99-31-10023,Krishna Thapa,1975-08-09,Lalitpur,Lalitpur Metro,3,Rajesh Thapa,Rita Thapa,O
+95-39-70-10037,Hari Adhikari,1975-01-12,Bhaktapur,Bhaktapur Municipality,2,Bikram Adhikari,Laxmi Adhikari,M
