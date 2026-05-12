@@ -12,6 +12,7 @@ class AuditLog(models.Model):
         ('candidate_added', 'Candidate Added'),
         ('candidate_updated', 'Candidate Updated'),
         ('candidate_deleted', 'Candidate Deleted'),
+        ('user_registration_failed', 'User Registration Failed'),
         ('user_registered', 'User Registered'),
         ('user_verified', 'User Verified'),
     ]
