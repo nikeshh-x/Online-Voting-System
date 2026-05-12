@@ -14,12 +14,16 @@ class AuditLog(models.Model):
         ('candidate_deleted', 'Candidate Deleted'),
         ('user_registered', 'User Registered'),
         ('user_verified', 'User Verified'),
+        ('citizenship_verification', 'Citizenship Verification Success'),
+        ('citizenship_verification_failed', 'Citizenship Verification Failed'),
     ]
     
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='audit_logs'
+        related_name='audit_logs',
+        null=True,  # Allow null for unauthenticated users
+        blank=True
     )
     action = models.CharField(max_length=50, choices=ACTION_CHOICES)
     details = models.JSONField(default=dict)
@@ -27,7 +31,8 @@ class AuditLog(models.Model):
     ip_address = models.GenericIPAddressField()
     
     def __str__(self):
-        return f"{self.action} by {self.user.email} at {self.timestamp}"
+        user_info = self.user.email if self.user else 'Anonymous'
+        return f"{self.action} by {user_info} at {self.timestamp}"
     
     class Meta:
         db_table = 'audit_logs'
