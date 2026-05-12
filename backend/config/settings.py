@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'analytics',
     'audit',
     'api',
+    'import_export',
 ]
 
 MIDDLEWARE = [
