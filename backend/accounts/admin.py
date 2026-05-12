@@ -1,7 +1,25 @@
 from django.contrib import admin
 from .models import Citizen, User
 from django.contrib.auth.admin import UserAdmin
-from django.utils.safestring import mark_safe
+from django.http import HttpResponse
+import csv
+
+class ExportCsvMixin:
+    def export_to_csv(self, request, queryset):
+        meta = self.model._meta
+        field_names = [field.name for field in meta.fields]
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename={meta.model_name}_export.csv'
+        
+        writer = csv.writer(response)
+        writer.writerow(field_names)
+        for obj in queryset:
+            writer.writerow([getattr(obj, field) for field in field_names])
+        
+        return response
+    export_to_csv.short_description = "Export selected to CSV"
+
 
 @admin.register(Citizen)
 class CitizenAdmin(admin.ModelAdmin):
@@ -9,6 +27,8 @@ class CitizenAdmin(admin.ModelAdmin):
     list_filter = ('district', 'is_eligible', 'is_registered', 'gender')
     search_fields = ('citizenship_number', 'full_name', 'father_name', 'mother_name')
     readonly_fields = ('created_at', 'updated_at') 
+    date_hierarchy = 'created_at'
+    actions = [ExportCsvMixin.export_to_csv]
 
     fieldsets = (
         ('Personal Information', {
