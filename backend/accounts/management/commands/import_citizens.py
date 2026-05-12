@@ -1,8 +1,8 @@
 import csv
 import os
+import re
 from datetime import datetime
 from django.core.management.base import BaseCommand, CommandError
-from django.core.exceptions import ValidationError
 from accounts.models import Citizen
 
 class Command(BaseCommand):
@@ -10,35 +10,55 @@ class Command(BaseCommand):
     
     def add_arguments(self, parser):
         parser.add_argument('csv_file', type=str, help='Path to the CSV file')
-        parser.add_argument(
-            '--dry-run',
-            action='store_true',
-            help='Validate without inserting into database',
-        )
-        parser.add_argument(
-            '--overwrite',
-            action='store_true',
-            help='Update existing citizens',
-        )
+        parser.add_argument('--dry-run', action='store_true', help='Validate without inserting')
+        parser.add_argument('--overwrite', action='store_true', help='Update existing citizens')
+        parser.add_argument('--error-log', type=str, help='Path to save error log file')
+    
+    def validate_citizenship_format(self, number):
+        """Validate Nepal citizenship number format"""
+        cleaned = number.replace('-', '').replace(' ', '')
+        if not cleaned.isdigit():
+            return False
+        if len(cleaned) < 8 or len(cleaned) > 15:
+            return False
+        return True
     
     def validate_date_format(self, date_string):
         """Validate date format YYYY-MM-DD"""
         try:
-            datetime.strptime(date_string, '%Y-%m-%d')
-            return True
+            return datetime.strptime(date_string, '%Y-%m-%d')
         except ValueError:
-            return False
+            return None
     
     def validate_gender(self, gender):
-        """Validate gender value"""
         return gender.upper() in ['M', 'F', 'O']
     
+    def validate_ward_number(self, ward_str):
+        try:
+            ward = int(ward_str)
+            if 1 <= ward <= 32:
+                return ward
+        except (ValueError, TypeError):
+            pass
+        return None
+    
+    def clean_text(self, text):
+        if not text:
+            return ''
+        return ' '.join(text.split()).strip().title()
+    
+    def normalize_district(self, district):
+        district_map = {
+            'kathmandu': 'Kathmandu', 'ktm': 'Kathmandu',
+            'lalitpur': 'Lalitpur', 'patan': 'Lalitpur',
+            'bhaktapur': 'Bhaktapur',
+        }
+        return district_map.get(district.lower().strip(), district.title())
+    
     def calculate_age(self, date_of_birth):
-        """Calculate age from date of birth"""
         today = datetime.now().date()
-        dob = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
-        age = today.year - dob.year
-        if today.month < dob.month or (today.month == dob.month and today.day < dob.day):
+        age = today.year - date_of_birth.year
+        if today.month < date_of_birth.month or (today.month == date_of_birth.month and today.day < date_of_birth.day):
             age -= 1
         return age
     
@@ -46,146 +66,140 @@ class Command(BaseCommand):
         csv_file = options['csv_file']
         dry_run = options['dry_run']
         overwrite = options['overwrite']
+        error_log_path = options.get('error_log')
         
-        # Check if file exists
         if not os.path.exists(csv_file):
             raise CommandError(f'File "{csv_file}" does not exist')
         
-        self.stdout.write(f"📂 Reading file: {csv_file}")
+        self.stdout.write(f"📂 File: {csv_file}")
         self.stdout.write(f"🔍 Dry run: {'Yes' if dry_run else 'No'}")
-        self.stdout.write(f"✏️ Overwrite: {'Yes' if overwrite else 'No'}")
         self.stdout.write("-" * 50)
         
-        # Statistics
-        total_rows = 0
+        total = 0
         imported = 0
+        updated = 0
         skipped = 0
         errors = []
         
-        # Expected CSV headers
-        expected_headers = [
-            'citizenship_number', 'full_name', 'date_of_birth', 'district',
-            'municipality', 'ward_number', 'father_name', 'mother_name', 'gender'
-        ]
+        expected_headers = ['citizenship_number', 'full_name', 'date_of_birth', 'district',
+                            'municipality', 'ward_number', 'father_name', 'mother_name', 'gender']
         
-        try:
-            with open(csv_file, 'r', encoding='utf-8') as file:
-                reader = csv.DictReader(file)
+        with open(csv_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            
+            # Validate headers
+            if not reader.fieldnames:
+                raise CommandError("CSV has no headers")
+            
+            missing = set(expected_headers) - set(reader.fieldnames)
+            if missing:
+                raise CommandError(f"Missing headers: {missing}")
+            
+            for row_num, row in enumerate(reader, start=2):
+                total += 1
+                row_errors = []
                 
-                # Validate headers
-                headers = reader.fieldnames
-                if not headers or set(expected_headers) != set(headers):
-                    self.stdout.write(self.style.ERROR(f"Invalid CSV headers!"))
-                    self.stdout.write(f"Expected: {expected_headers}")
-                    self.stdout.write(f"Found: {headers}")
-                    return
+                # Validate citizenship
+                citizenship = self.clean_text(row.get('citizenship_number', ''))
+                if not citizenship:
+                    row_errors.append("Citizenship number required")
+                elif not self.validate_citizenship_format(citizenship):
+                    row_errors.append(f"Invalid format: {citizenship}")
                 
-                for row_num, row in enumerate(reader, start=2):  # Start at 2 (header is row 1)
-                    total_rows += 1
-                    self.stdout.write(f"\n📝 Processing row {row_num}...")
-                    
-                    # Validate required fields
-                    required_fields = ['citizenship_number', 'full_name', 'date_of_birth', 'district', 'gender']
-                    missing_fields = [f for f in required_fields if not row.get(f)]
-                    if missing_fields:
-                        error_msg = f"Row {row_num}: Missing required fields: {missing_fields}"
-                        errors.append(error_msg)
-                        self.stdout.write(self.style.ERROR(f"❌ {error_msg}"))
-                        skipped += 1
-                        continue
-                    
-                    # Validate date format
-                    if not self.validate_date_format(row['date_of_birth']):
-                        error_msg = f"Row {row_num}: Invalid date format: {row['date_of_birth']}. Use YYYY-MM-DD"
-                        errors.append(error_msg)
-                        self.stdout.write(self.style.ERROR(f"❌ {error_msg}"))
-                        skipped += 1
-                        continue
-                    
-                    # Validate gender
-                    if not self.validate_gender(row['gender']):
-                        error_msg = f"Row {row_num}: Invalid gender: {row['gender']}. Use M, F, or O"
-                        errors.append(error_msg)
-                        self.stdout.write(self.style.ERROR(f"❌ {error_msg}"))
-                        skipped += 1
-                        continue
-                    
-                    # Calculate age and determine eligibility
-                    age = self.calculate_age(row['date_of_birth'])
-                    is_eligible = age >= 18
-                    
-                    # Check if citizen already exists
-                    existing = Citizen.objects.filter(citizenship_number=row['citizenship_number']).first()
-                    
-                    if existing and not overwrite:
-                        error_msg = f"Row {row_num}: Citizenship number {row['citizenship_number']} already exists (skipped)"
-                        errors.append(error_msg)
-                        self.stdout.write(self.style.WARNING(f"⚠️ {error_msg}"))
-                        skipped += 1
-                        continue
-                    
-                    if not dry_run:
-                        try:
-                            if existing and overwrite:
-                                # Update existing citizen
-                                existing.full_name = row['full_name']
-                                existing.date_of_birth = row['date_of_birth']
-                                existing.district = row['district']
-                                existing.municipality = row.get('municipality', '')
-                                existing.ward_number = int(row.get('ward_number', 0)) if row.get('ward_number') else 0
-                                existing.father_name = row.get('father_name', '')
-                                existing.mother_name = row.get('mother_name', '')
-                                existing.gender = row['gender'].upper()
-                                existing.is_eligible = is_eligible
-                                existing.save()
-                                self.stdout.write(self.style.SUCCESS(f"✅ Updated: {row['citizenship_number']}"))
-                            else:
-                                # Create new citizen
-                                Citizen.objects.create(
-                                    citizenship_number=row['citizenship_number'],
-                                    full_name=row['full_name'],
-                                    date_of_birth=row['date_of_birth'],
-                                    district=row['district'],
-                                    municipality=row.get('municipality', ''),
-                                    ward_number=int(row.get('ward_number', 0)) if row.get('ward_number') else 0,
-                                    father_name=row.get('father_name', ''),
-                                    mother_name=row.get('mother_name', ''),
-                                    gender=row['gender'].upper(),
-                                    is_eligible=is_eligible,
-                                    is_registered=False
-                                )
-                                self.stdout.write(self.style.SUCCESS(f"✅ Imported: {row['citizenship_number']}"))
+                # Validate name
+                full_name = self.clean_text(row.get('full_name', ''))
+                if not full_name:
+                    row_errors.append("Full name required")
+                
+                # Validate DOB and age
+                dob_str = row.get('date_of_birth', '')
+                dob = self.validate_date_format(dob_str)
+                if not dob:
+                    row_errors.append(f"Invalid date: {dob_str}")
+                else:
+                    age = self.calculate_age(dob)
+                    if age < 18:
+                        row_errors.append(f"Age {age} < 18 - not eligible")
+                
+                # Validate district
+                district = self.normalize_district(row.get('district', ''))
+                if not district:
+                    row_errors.append("District required")
+                
+                # Validate gender
+                gender = row.get('gender', '').upper()
+                if not self.validate_gender(gender):
+                    row_errors.append(f"Invalid gender: {gender}")
+                
+                # Validate ward
+                ward = self.validate_ward_number(row.get('ward_number', ''))
+                if row.get('ward_number') and ward is None:
+                    row_errors.append(f"Invalid ward: {row.get('ward_number')}")
+                
+                if row_errors:
+                    error_msg = f"Row {row_num}: {'; '.join(row_errors)}"
+                    errors.append(error_msg)
+                    self.stdout.write(self.style.ERROR(f"❌ {error_msg}"))
+                    skipped += 1
+                    continue
+                
+                # Check existing
+                existing = Citizen.objects.filter(citizenship_number=citizenship).first()
+                if existing and not overwrite:
+                    error_msg = f"Row {row_num}: {citizenship} already exists (use --overwrite)"
+                    errors.append(error_msg)
+                    self.stdout.write(self.style.WARNING(f"⚠️ {error_msg}"))
+                    skipped += 1
+                    continue
+                
+                if not dry_run:
+                    try:
+                        if existing and overwrite:
+                            existing.full_name = full_name
+                            existing.date_of_birth = dob
+                            existing.district = district
+                            existing.gender = gender
+                            existing.save()
+                            updated += 1
+                            self.stdout.write(self.style.SUCCESS(f"🔄 Updated: {citizenship}"))
+                        else:
+                            Citizen.objects.create(
+                                citizenship_number=citizenship,
+                                full_name=full_name,
+                                date_of_birth=dob,
+                                district=district,
+                                municipality=self.clean_text(row.get('municipality', '')),
+                                ward_number=ward or 0,
+                                father_name=self.clean_text(row.get('father_name', '')),
+                                mother_name=self.clean_text(row.get('mother_name', '')),
+                                gender=gender,
+                                is_eligible=age >= 18,
+                                is_registered=False
+                            )
                             imported += 1
-                        except Exception as e:
-                            error_msg = f"Row {row_num}: Database error: {str(e)}"
-                            errors.append(error_msg)
-                            self.stdout.write(self.style.ERROR(f"❌ {error_msg}"))
-                            skipped += 1
-                    else:
-                        self.stdout.write(self.style.SUCCESS(f"✅ Would import: {row['citizenship_number']}"))
-                        imported += 1
-                    
-        except FileNotFoundError:
-            raise CommandError(f'File "{csv_file}" not found')
-        except Exception as e:
-            raise CommandError(f'Error reading CSV: {str(e)}')
+                            self.stdout.write(self.style.SUCCESS(f"✅ Imported: {citizenship}"))
+                    except Exception as e:
+                        error_msg = f"Row {row_num}: DB error - {str(e)}"
+                        errors.append(error_msg)
+                        self.stdout.write(self.style.ERROR(f"❌ {error_msg}"))
+                        skipped += 1
+                else:
+                    self.stdout.write(f"🔍 Would import: {citizenship} - {full_name}")
+                    imported += 1
         
-        # Print summary
+        # Summary
         self.stdout.write("\n" + "=" * 50)
         self.stdout.write(self.style.SUCCESS("📊 IMPORT SUMMARY"))
         self.stdout.write("=" * 50)
-        self.stdout.write(f"📄 Total rows processed: {total_rows}")
-        self.stdout.write(f"✅ Successfully imported: {imported}")
+        self.stdout.write(f"📄 Total rows: {total}")
+        self.stdout.write(f"✅ Imported: {imported}")
+        self.stdout.write(f"🔄 Updated: {updated}")
         self.stdout.write(f"⚠️ Skipped: {skipped}")
         
-        if errors:
-            self.stdout.write(f"\n❌ Errors ({len(errors)}):")
-            for error in errors[:10]:  # Show first 10 errors
-                self.stdout.write(f"  • {error}")
-            if len(errors) > 10:
-                self.stdout.write(f"  ... and {len(errors) - 10} more errors")
+        if errors and error_log_path:
+            with open(error_log_path, 'w') as log:
+                log.write("\n".join(errors))
+            self.stdout.write(f"📝 Error log: {error_log_path}")
         
         if dry_run:
-            self.stdout.write("\n💡 Run without --dry-run to actually import the data")
-        
-        self.stdout.write("=" * 50)
+            self.stdout.write("\n💡 Run without --dry-run to import")
