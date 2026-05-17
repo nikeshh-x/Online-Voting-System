@@ -61,7 +61,7 @@ function LoginPage() {
           <div className="flex justify-center mb-2">
             <ShieldCheck className="h-10 w-10 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-white text-center">Welcome Back</h2>
+          <h2 className="text-2xl font-bold text-black text-center">Welcome Back</h2>
           <p className="text-primary-100 text-center mt-1">Login to your account</p>
         </div>
 
@@ -113,7 +113,7 @@ function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary-500 text-white py-3 rounded-lg hover:bg-primary-600 transition font-medium mt-6 disabled:opacity-50"
+            className="w-full bg-primary-500 text-black py-3 rounded-lg hover:bg-primary-600 transition font-medium mt-6 disabled:opacity-50"
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>

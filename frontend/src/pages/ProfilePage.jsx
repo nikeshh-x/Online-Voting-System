@@ -1,8 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, Mail, MapPin, Calendar, Phone, CheckCircle, XCircle, Edit2, Save, X } from 'lucide-react';
-import Layout from '../components/Layout';
-import { getDashboardStats, updateProfile } from '../services/api';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  User,
+  Mail,
+  MapPin,
+  Calendar,
+  Phone,
+  CheckCircle,
+  XCircle,
+  Edit2,
+  Save,
+  X,
+} from "lucide-react";
+import Layout from "../components/Layout";
+import { getDashboardStats, updateProfile } from "../services/api";
+import { RefreshCw } from "lucide-react";
+import { resendVerification } from "../services/api";
 
 function ProfilePage() {
   const navigate = useNavigate();
@@ -10,7 +23,9 @@ function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
-  const [saveStatus, setSaveStatus] = useState('');
+  const [saveStatus, setSaveStatus] = useState("");
+  const [resendStatus, setResendStatus] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   useEffect(() => {
     fetchUser();
@@ -19,18 +34,18 @@ function ProfilePage() {
   const fetchUser = async () => {
     try {
       const response = await getDashboardStats();
-      if (response.status === 'success') {
+      if (response.status === "success") {
         setUser(response.data.user);
         setFormData({
           email: response.data.user.email,
-          phone: response.data.user.phone || '',
+          phone: response.data.user.phone || "",
         });
         // Update localStorage for sidebar
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem("user", JSON.stringify(response.data.user));
       }
     } catch (error) {
-      console.error('Profile error:', error);
-      navigate('/login');
+      console.error("Profile error:", error);
+      navigate("/login");
     } finally {
       setLoading(false);
     }
@@ -38,14 +53,14 @@ function ProfilePage() {
 
   const handleEdit = () => {
     setIsEditing(true);
-    setSaveStatus('');
+    setSaveStatus("");
   };
 
   const handleCancel = () => {
     setIsEditing(false);
     setFormData({
       email: user?.email,
-      phone: user?.phone || '',
+      phone: user?.phone || "",
     });
   };
 
@@ -58,34 +73,64 @@ function ProfilePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSaveStatus('saving');
-    
+    setSaveStatus("saving");
+
     try {
       const response = await updateProfile({
         email: formData.email,
         phone: formData.phone,
       });
-      
-      if (response.status === 'success') {
-        setSaveStatus('success');
+
+      if (response.status === "success") {
+        setSaveStatus("success");
         setUser({
           ...user,
           email: formData.email,
           phone: formData.phone,
         });
         // Update localStorage
-        localStorage.setItem('user', JSON.stringify({
-          ...user,
-          email: formData.email,
-          phone: formData.phone,
-        }));
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            ...user,
+            email: formData.email,
+            phone: formData.phone,
+          }),
+        );
         setIsEditing(false);
-        setTimeout(() => setSaveStatus(''), 3000);
+        setTimeout(() => setSaveStatus(""), 3000);
       }
     } catch (error) {
-      console.error('Update error:', error);
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus(''), 3000);
+      console.error("Update error:", error);
+      setSaveStatus("error");
+      setTimeout(() => setSaveStatus(""), 3000);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (resendCooldown > 0) return;
+
+    setResendStatus("sending");
+    try {
+      const response = await resendVerification();
+      if (response.status === "success") {
+        setResendStatus("sent");
+        setResendCooldown(60);
+        // Countdown timer
+        const timer = setInterval(() => {
+          setResendCooldown((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        setTimeout(() => setResendStatus(""), 3000);
+      }
+    } catch (error) {
+      setResendStatus("error");
+      setTimeout(() => setResendStatus(""), 3000);
     }
   };
 
@@ -106,7 +151,9 @@ function ProfilePage() {
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-            <p className="text-gray-500 mt-1">View and manage your profile information</p>
+            <p className="text-gray-500 mt-1">
+              View and manage your profile information
+            </p>
           </div>
           {!isEditing && (
             <button
@@ -122,7 +169,9 @@ function ProfilePage() {
         {/* Profile Card */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="bg-linear-to-r from-primary-500 to-primary-600 px-6 py-4">
-            <h2 className="text-lg font-semibold text-black">Personal Information</h2>
+            <h2 className="text-lg font-semibold text-black">
+              Personal Information
+            </h2>
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -140,7 +189,9 @@ function ProfilePage() {
               <MapPin className="h-5 w-5 text-gray-400" />
               <div className="flex-1">
                 <p className="text-sm text-gray-500">Citizenship Number</p>
-                <p className="font-medium text-gray-900 font-mono text-sm">{user?.citizenship_number}</p>
+                <p className="font-medium text-gray-900 font-mono text-sm">
+                  {user?.citizenship_number}
+                </p>
               </div>
             </div>
 
@@ -178,6 +229,35 @@ function ProfilePage() {
                         <XCircle size={12} /> Not verified
                       </span>
                     )}
+
+                    {/* RESEND BUTTON - PUT HERE */}
+                    {!user?.is_verified && (
+                      <button
+                        onClick={handleResendVerification}
+                        disabled={resendCooldown > 0}
+                        className="flex items-center gap-2 text-sm text-primary-500 hover:text-primary-600 mt-2 disabled:opacity-50"
+                      >
+                        <RefreshCw
+                          size={14}
+                          className={
+                            resendStatus === "sending" ? "animate-spin" : ""
+                          }
+                        />
+                        {resendCooldown > 0
+                          ? `Resend available in ${resendCooldown}s`
+                          : "Resend verification email"}
+                      </button>
+                    )}
+                    {resendStatus === "sent" && (
+                      <p className="text-green-600 text-xs mt-1">
+                        Verification email sent!
+                      </p>
+                    )}
+                    {resendStatus === "error" && (
+                      <p className="text-red-600 text-xs mt-1">
+                        Failed to send. Please try again.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -198,7 +278,9 @@ function ProfilePage() {
                     placeholder="Not provided"
                   />
                 ) : (
-                  <p className="font-medium text-gray-900">{user?.phone || 'Not provided'}</p>
+                  <p className="font-medium text-gray-900">
+                    {user?.phone || "Not provided"}
+                  </p>
                 )}
               </div>
             </div>
@@ -236,12 +318,12 @@ function ProfilePage() {
             )}
 
             {/* Save Status Message */}
-            {saveStatus === 'success' && (
+            {saveStatus === "success" && (
               <div className="mt-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
                 Profile updated successfully!
               </div>
             )}
-            {saveStatus === 'error' && (
+            {saveStatus === "error" && (
               <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
                 Failed to update profile. Please try again.
               </div>

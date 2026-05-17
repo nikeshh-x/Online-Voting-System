@@ -22,7 +22,7 @@ urlpatterns = [
     path('verify-citizenship/', VerifyCitizenshipView.as_view(), name='verify-citizenship'),
     path('register/', RegisterView.as_view(), name='register'),
     path('verify-email/<str:token>/', VerifyEmailView.as_view(), name='verify-email'),
-    path('resend-verification-email/', ResendVerificationEmailView.as_view(), name='resend-verification'),
+    path('resend-verification/', ResendVerificationEmailView.as_view(), name='resend-verification'),
 
     path('login/', LoginView.as_view(), name='login'),
     path('profile/', ProfileView.as_view(), name='profile'),

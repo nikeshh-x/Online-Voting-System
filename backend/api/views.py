@@ -19,6 +19,8 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from datetime import timedelta
 
+from django.core.cache import cache
+
 
 class HealthCheckView(APIView):
     permission_classes = [AllowAny]
@@ -135,32 +137,34 @@ class RegisterView(APIView):
         return Response({'status': 'error', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 class VerifyEmailView(APIView):
-    """Verify email with token"""
     permission_classes = [AllowAny]
     
     def get(self, request, token):
+        print(f"DEBUG: Received token: {token}")  # Debug
         try:
-            # Find user with this token
             user = User.objects.get(email_verification_token=token, is_email_verified=False)
+
+            # Check if already verified
+            if user.is_email_verified:
+                return Response({
+                    'status': 'success',
+                    'message': 'Email already verified! Please login.'
+                }, status=status.HTTP_200_OK)
             
-            # Check if token expired (24 hours)
+            from django.utils import timezone
+            from datetime import timedelta
+            
             if user.created_at < timezone.now() - timedelta(hours=24):
                 return Response({
                     'status': 'error',
                     'message': 'Verification link has expired. Please request a new one.'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Verify user
             user.is_email_verified = True
             user.email_verification_token = None
             user.save()
-            
-            # Send welcome email
-            from accounts.utils import send_welcome_email
-            try:
-                send_welcome_email(user)
-            except Exception as e:
-                print(f"Welcome email failed: {e}")
+
+            print(f"User {user.email} verified successfully")  # Debug
             
             return Response({
                 'status': 'success',
@@ -168,13 +172,20 @@ class VerifyEmailView(APIView):
             }, status=status.HTTP_200_OK)
             
         except User.DoesNotExist:
+            # Check if already verified
+            user = User.objects.filter(email_verification_token=token).first()
+            if user and user.is_email_verified:
+                return Response({
+                    'status': 'success',
+                    'message': 'Email already verified! Please login.'
+                }, status=status.HTTP_200_OK)
+            
             return Response({
                 'status': 'error',
-                'message': 'Invalid or already used verification token.'
+                'message': 'Invalid verification token.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
 class ResendVerificationEmailView(APIView):
-    """Resend verification email"""
     permission_classes = [IsAuthenticated]
     
     def post(self, request):
@@ -186,12 +197,27 @@ class ResendVerificationEmailView(APIView):
                 'message': 'Email already verified.'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Rate limit check (can be implemented with cache)
+        # Rate limiting: 1 request per 2 minutes
+        cache_key = f"resend_verification_{user.id}"
+        if cache.get(cache_key):
+            return Response({
+                'status': 'error',
+                'message': 'Please wait 2 minutes before requesting another verification email.'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
         
-        # Send verification email
         from accounts.utils import send_verification_email
         try:
             send_verification_email(user, request)
+            cache.set(cache_key, True, 120)  # 2 minutes cooldown
+            
+            from audit.models import AuditLog
+            AuditLog.objects.create(
+                user=user,
+                action='resend_verification',
+                details={'ip_address': request.META.get('REMOTE_ADDR')},
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+            
             return Response({
                 'status': 'success',
                 'message': 'Verification email sent. Please check your inbox.'
