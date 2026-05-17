@@ -109,3 +109,41 @@ class RegistrationSerializer(serializers.Serializer):
         citizen.save()
         
         return user
+
+class LoginSerializer(serializers.Serializer):
+    citizenship_number = serializers.CharField(required=True)
+    password = serializers.CharField(write_only=True, required=True)
+    
+    def validate(self, attrs):
+        citizenship_number = attrs.get('citizenship_number')
+        password = attrs.get('password')
+        
+        try:
+            citizen = Citizen.objects.get(citizenship_number=citizenship_number)
+            user = citizen.user
+            
+            if not user:
+                raise serializers.ValidationError('No user linked to this citizenship number')
+            
+            if not user.check_password(password):
+                raise serializers.ValidationError('Invalid password')
+            
+            if not user.is_email_verified:
+                raise serializers.ValidationError('Email not verified. Please check your inbox.')
+            
+            if not user.is_active:
+                raise serializers.ValidationError('Account is disabled')
+                
+        except Citizen.DoesNotExist:
+            raise serializers.ValidationError('Citizenship number not found')
+        
+        attrs['user'] = user
+        return attrs
+    
+    def get_tokens(self, user):
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh = RefreshToken.for_user(user)
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }

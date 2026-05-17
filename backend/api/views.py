@@ -6,6 +6,10 @@ from accounts.models import Citizen
 from .serializers import CitizenSerializer, RegistrationSerializer, CitizenshipVerificationSerializer
 from rest_framework import status
 
+from rest_framework_simplejwt.views import TokenRefreshView
+from .serializers import LoginSerializer
+
+
 from rest_framework.throttling import AnonRateThrottle
 
 from rest_framework.permissions import IsAuthenticated
@@ -131,7 +135,6 @@ class RegisterView(APIView):
         
         return Response({'status': 'error', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-
 class VerifyEmailView(APIView):
     """Verify email with token"""
     permission_classes = [AllowAny]
@@ -199,3 +202,107 @@ class ResendVerificationEmailView(APIView):
                 'status': 'error',
                 'message': f'Failed to send email: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class LoginView(APIView):
+    """Login with email or citizenship number"""
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            user = serializer.validated_data['user']
+            tokens = serializer.get_tokens(user)
+            
+            # Create audit log
+            from audit.models import AuditLog
+            AuditLog.objects.create(
+                user=user,
+                action='login',
+                details={
+                    'ip_address': request.META.get('REMOTE_ADDR'),
+                    'user_agent': request.META.get('HTTP_USER_AGENT', '')
+                },
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+            
+            return Response({
+                'status': 'success',
+                'message': 'Login successful',
+                'data': {
+                    'user': {
+                        'id': user.id,
+                        'email': user.email,
+                        'full_name': user.citizen.full_name if user.citizen else user.username,
+                        'is_verified': user.is_email_verified
+                    },
+                    'tokens': tokens
+                }
+            }, status=status.HTTP_200_OK)
+        
+        # Log failed attempt
+        from audit.models import AuditLog
+        AuditLog.objects.create(
+            user=None,
+            action='login_failed',
+            details={
+                'errors': serializer.errors,
+                'ip_address': request.META.get('REMOTE_ADDR')
+            },
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        return Response({
+            'status': 'error',
+            'errors': serializer.errors
+        }, status=status.HTTP_401_UNAUTHORIZED)
+    
+class ProfileView(APIView):
+    """Get current user profile"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        return Response({
+            'status': 'success',
+            'data': {
+                'id': user.id,
+                'email': user.email,
+                'full_name': user.citizen.full_name if user.citizen else user.username,
+                'phone': user.phone,
+                'citizenship_number': user.citizen.citizenship_number if user.citizen else None,
+                'district': user.citizen.district if user.citizen else None,
+                'is_verified': user.is_email_verified,
+                'date_joined': user.date_joined,
+            }
+        }, status=status.HTTP_200_OK)
+    
+class LogoutView(APIView):
+    """Logout and blacklist refresh token"""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            refresh_token = request.data.get('refresh')
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            
+            # Create audit log
+            from audit.models import AuditLog
+            AuditLog.objects.create(
+                user=request.user,
+                action='logout',
+                details={'ip_address': request.META.get('REMOTE_ADDR')},
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+            
+            return Response({
+                'status': 'success',
+                'message': 'Logout successful'
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
