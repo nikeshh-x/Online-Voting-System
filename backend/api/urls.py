@@ -4,7 +4,9 @@ from .views import (
     CitizenListView, 
     CitizenDetailView, 
     VerifyCitizenshipView,
-    RegisterView
+    RegisterView,
+    VerifyEmailView,
+    ResendVerificationEmailView,
 )
 
 urlpatterns = [
@@ -13,4 +15,6 @@ urlpatterns = [
     path('citizens/<int:pk>/', CitizenDetailView.as_view(), name='citizen-detail'),
     path('verify-citizenship/', VerifyCitizenshipView.as_view(), name='verify-citizenship'),
     path('register/', RegisterView.as_view(), name='register'),
+    path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),
+    path('resend-verification-email/', ResendVerificationEmailView.as_view(), name='resend-verification'),
 ]

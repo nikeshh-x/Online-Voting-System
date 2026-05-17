@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Online Voting System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #003778 0%, #002559 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .content {
+            background: #f5f4f2;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome to Online Voting System!</h1>
+        </div>
+        <div class="content">
+            <h2>Hello {{ user.full_name }}!</h2>
+            <p>Your email has been successfully verified.</p>
+            <p>You now have full access to the voting system. Here's what you can do:</p>
+            <ul>
+                <li>View active elections</li>
+                <li>Cast your vote securely</li>
+                <li>View election results</li>
+                <li>Update your profile</li>
+            </ul>
+            <p>Thank you for being a part of our democratic process!</p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2025 Online Voting System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
