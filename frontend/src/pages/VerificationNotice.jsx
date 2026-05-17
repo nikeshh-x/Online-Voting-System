@@ -35,9 +35,9 @@ function VerificationNotice() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 py-12 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-gray-900 to-gray-800 py-12 px-4">
       <div className="max-w-md w-full bg-white rounded-xl shadow-2xl overflow-hidden">
-        <div className="bg-gradient-to-r from-green-500 to-green-600 px-8 py-6">
+        <div className="bg-linear-to-r from-green-500 to-green-600 px-8 py-6">
           <div className="flex justify-center mb-2">
             <Mail className="h-10 w-10 text-white" />
           </div>

@@ -36,7 +36,7 @@ function VerifyEmailPage() {
 
   if (status === 'verifying') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-gray-900 to-gray-800">
         <div className="text-center">
           <Loader className="h-12 w-12 text-primary-500 animate-spin mx-auto mb-4" />
           <p className="text-white">Verifying your email...</p>
@@ -47,7 +47,7 @@ function VerifyEmailPage() {
 
   if (status === 'success') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-gray-900 to-gray-800">
         <div className="bg-white rounded-xl shadow-2xl p-8 text-center max-w-md">
           <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Email Verified!</h2>
@@ -59,7 +59,7 @@ function VerifyEmailPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-gray-900 to-gray-800">
       <div className="bg-white rounded-xl shadow-2xl p-8 text-center max-w-md">
         <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Verification Failed</h2>

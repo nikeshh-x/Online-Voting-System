@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Vote,
@@ -8,18 +8,29 @@ import {
   LogIn,
   UserPlus,
   Menu,
-  X,
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  LogOut,
+  User,
 } from "lucide-react";
+import { logoutUser } from "../services/api";
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Navigation items (remove Home since it's public)
+  // Check if user is logged in
+  const token = localStorage.getItem("access_token");
+  const isAuthenticated = !!token;
+  
+  // Get user from localStorage
+  const userStr = localStorage.getItem("user");
+  const user = userStr ? JSON.parse(userStr) : null;
+
+  // Navigation items for authenticated users
   const navItems = [
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Elections", path: "/elections", icon: Vote },
@@ -27,6 +38,7 @@ const Sidebar = () => {
     { name: "Profile", path: "/profile", icon: UserCircle },
   ];
 
+  // Auth items for non-authenticated users
   const authItems = [
     { name: "Login", path: "/login", icon: LogIn },
     { name: "Register", path: "/register", icon: UserPlus },
@@ -38,11 +50,28 @@ const Sidebar = () => {
     setIsCollapsed(!isCollapsed);
   };
 
+  const handleLogout = async () => {
+    const refreshToken = localStorage.getItem("refresh_token");
+    if (refreshToken) {
+      try {
+        await logoutUser(refreshToken);
+      } catch (error) {
+        console.error("Logout error:", error);
+      }
+    }
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
+  const initials = user?.full_name?.slice(0, 2).toUpperCase() || user?.email?.slice(0, 2).toUpperCase() || "U";
+
   return (
     <>
       <button
         onClick={() => setIsMobileOpen(true)}
-        className="fxed top-4 left-4 z-50 lg:hidden bg-primary-500 text-white p-2 rounded-lg shadow-lg"
+        className="fixed top-4 left-4 z-50 lg:hidden bg-primary-500 text-white p-2 rounded-lg shadow-lg"
       >
         <Menu size={24} />
       </button>
@@ -76,25 +105,38 @@ const Sidebar = () => {
             onClick={toggleSidebar}
             className="hidden lg:block p-1 rounded-lg hover:bg-gray-700 transition"
           >
-            {isCollapsed ? (
-              <ChevronRight size={18} />
-            ) : (
-              <ChevronLeft size={18} />
-            )}
+            {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
         </div>
 
+        {/* User Info Section (only when logged in) */}
+        {isAuthenticated && user && (
+          <div className={`p-4 border-b border-gray-700 ${isCollapsed ? "text-center" : ""}`}>
+            <div className={`flex items-center ${isCollapsed ? "flex-col" : "space-x-3"}`}>
+              <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center">
+                <User className="h-5 w-5 text-white" />
+              </div>
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{user?.full_name || user?.email}</p>
+                  <p className="text-xs text-gray-400 truncate">Verified Voter</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Navigation */}
         <nav className="flex-1 py-6">
-          {/* Main Navigation */}
           <div className="px-3">
             {!isCollapsed && (
               <p className="text-xs text-gray-400 uppercase tracking-wider mb-3 px-3">
-                Main
+                {isAuthenticated ? "Menu" : "Main"}
               </p>
             )}
             <div className="space-y-1">
-              {navItems.map((item) => {
+              {/* Show nav items only for authenticated users */}
+              {isAuthenticated && navItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);
                 return (
@@ -103,11 +145,8 @@ const Sidebar = () => {
                     to={item.path}
                     onClick={() => setIsMobileOpen(false)}
                     className={`flex items-center ${isCollapsed ? "justify-center" : "space-x-3"} px-3 py-2.5 rounded-lg transition-all duration-200
-                      ${
-                        active
-                          ? "bg-primary-500 text-white"
-                          : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                      }`}
+                      ${active ? "bg-primary-500 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white"}`}
+                    title={isCollapsed ? item.name : ""}
                   >
                     <Icon size={20} />
                     {!isCollapsed && <span>{item.name}</span>}
@@ -117,51 +156,62 @@ const Sidebar = () => {
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="my-6 mx-3 border-t border-gray-700"></div>
-
-          {/* Auth Section */}
-          <div className="px-3">
-            {!isCollapsed && (
-              <p className="text-xs text-gray-400 uppercase tracking-wider mb-3 px-3">
-                Account
-              </p>
-            )}
-            <div className="space-y-1">
-              {authItems.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.path);
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setIsMobileOpen(false)}
-                    className={`flex items-center ${isCollapsed ? "justify-center" : "space-x-3"} px-3 py-2.5 rounded-lg transition-all duration-200
-                      ${
-                        active
-                          ? "bg-primary-500 text-white"
-                          : "text-gray-300 hover:bg-gray-700 hover:text-white"
-                      }`}
-                  >
-                    <Icon size={20} />
-                    {!isCollapsed && <span>{item.name}</span>}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
+          {/* Show auth items only for non-authenticated users */}
+          {!isAuthenticated && (
+            <>
+              <div className="my-6 mx-3 border-t border-gray-700"></div>
+              <div className="px-3">
+                {!isCollapsed && (
+                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-3 px-3">Account</p>
+                )}
+                <div className="space-y-1">
+                  {authItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item.path);
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setIsMobileOpen(false)}
+                        className={`flex items-center ${isCollapsed ? "justify-center" : "space-x-3"} px-3 py-2.5 rounded-lg transition-all duration-200
+                          ${active ? "bg-primary-500 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white"}`}
+                        title={isCollapsed ? item.name : ""}
+                      >
+                        <Icon size={20} />
+                        {!isCollapsed && <span>{item.name}</span>}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
         </nav>
 
-        {/* Footer */}
-        <div
-          className={`p-4 border-t border-gray-700 ${isCollapsed ? "text-center" : ""}`}
-        >
-          {!isCollapsed ? (
-            <p className="text-xs text-gray-400">© 2024 VoteSecure</p>
-          ) : (
-            <ShieldCheck size={16} className="text-gray-400 mx-auto" />
-          )}
-        </div>
+        {/* Logout Button (only when logged in) */}
+        {isAuthenticated && (
+          <div className="p-4 border-t border-gray-700">
+            <button
+              onClick={handleLogout}
+              className={`flex items-center ${isCollapsed ? "justify-center" : "space-x-3"} w-full px-3 py-2.5 rounded-lg text-gray-300 hover:bg-red-500 hover:text-white transition-all duration-200`}
+              title={isCollapsed ? "Logout" : ""}
+            >
+              <LogOut size={20} />
+              {!isCollapsed && <span>Logout</span>}
+            </button>
+          </div>
+        )}
+
+        {/* Footer (only for non-authenticated users) */}
+        {!isAuthenticated && (
+          <div className={`p-4 border-t border-gray-700 ${isCollapsed ? "text-center" : ""}`}>
+            {!isCollapsed ? (
+              <p className="text-xs text-gray-400">© 2024 VoteSecure</p>
+            ) : (
+              <ShieldCheck size={16} className="text-gray-400 mx-auto" />
+            )}
+          </div>
+        )}
       </aside>
     </>
   );

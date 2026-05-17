@@ -3,7 +3,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import generics
 from accounts.models import Citizen, User
-from .serializers import CitizenSerializer, RegistrationSerializer, CitizenshipVerificationSerializer
+from .serializers import CitizenSerializer, RegistrationSerializer, CitizenshipVerificationSerializer,ProfileUpdateSerializer
 from rest_framework import status
 
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -211,6 +211,8 @@ class LoginView(APIView):
         
         if serializer.is_valid():
             user = serializer.validated_data['user']
+            user.last_login = timezone.now()
+            user.save(update_fields=['last_login'])
             tokens = serializer.get_tokens(user)
             
             # Create audit log
@@ -276,6 +278,36 @@ class ProfileView(APIView):
             }
         }, status=status.HTTP_200_OK)
     
+
+class ProfileUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def put(self, request):
+        serializer = ProfileUpdateSerializer(data=request.data, context={'request': request})
+        
+        if serializer.is_valid():
+            user = request.user
+            if 'email' in serializer.validated_data:
+                user.email = serializer.validated_data['email']
+            if 'phone' in serializer.validated_data:
+                user.phone = serializer.validated_data['phone']
+            user.save()
+            
+            return Response({
+                'status': 'success',
+                'message': 'Profile updated successfully',
+                'data': {
+                    'email': user.email,
+                    'phone': user.phone,
+                    'full_name': user.citizen.full_name if user.citizen else user.username,
+                }
+            }, status=status.HTTP_200_OK)
+        
+        return Response({
+            'status': 'error',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
 class LogoutView(APIView):
     """Logout and blacklist refresh token"""
     permission_classes = [IsAuthenticated]
@@ -305,3 +337,31 @@ class LogoutView(APIView):
                 'status': 'error',
                 'message': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
+
+class DashboardStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        
+        stats = {
+            'user': {
+                'full_name': user.citizen.full_name if user.citizen else user.username,
+                'email': user.email,
+                'phone': user.phone,
+                'citizenship_number': user.citizen.citizenship_number if user.citizen else None,
+                'district': user.citizen.district if user.citizen else None,
+                'is_verified': user.is_email_verified,
+                'last_login': user.last_login,
+                'date_joined': user.date_joined,
+            },
+            'voting_stats': {
+                'has_voted': getattr(user, 'has_voted', False),
+                'total_votes': 0,  # Will be implemented later
+            }
+        }
+        
+        return Response({
+            'status': 'success',
+            'data': stats
+        }, status=status.HTTP_200_OK)

@@ -96,4 +96,16 @@ export const logoutUser = async (refreshToken) => {
   return response.data;
 };
 
+// Get dashboard stats
+export const getDashboardStats = async () => {
+  const response = await api.get('/dashboard/stats/');
+  return response.data;
+};
+
+// Update profile
+export const updateProfile = async (data) => {
+  const response = await api.put('/profile/update/', data);
+  return response.data;
+};
+
 export default api;

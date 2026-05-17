@@ -147,3 +147,14 @@ class LoginSerializer(serializers.Serializer):
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         }
+
+class ProfileUpdateSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=False)
+    phone = serializers.CharField(max_length=15, required=False, allow_blank=True)
+    
+    def validate_email(self, value):
+        if value:
+            user = self.context['request'].user
+            if User.objects.filter(email=value).exclude(id=user.id).exists():
+                raise serializers.ValidationError('Email already in use')
+        return value
