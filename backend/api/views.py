@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import generics
-from accounts.models import Citizen
+from accounts.models import Citizen, User
 from .serializers import CitizenSerializer, RegistrationSerializer, CitizenshipVerificationSerializer
 from rest_framework import status
 
@@ -18,7 +18,6 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from datetime import timedelta
-from accounts.models import User
 
 
 class HealthCheckView(APIView):

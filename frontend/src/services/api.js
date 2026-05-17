@@ -52,4 +52,48 @@ api.interceptors.response.use(
     }
 );
 
+// ========== AUTH API ==========
+
+// Step 1: Verify citizenship
+export const verifyCitizenship = async (data) => {
+  const response = await api.post('/verify-citizenship/', data);
+  return response.data;
+};
+
+// Step 2: Register user
+export const registerUser = async (data) => {
+  const response = await api.post('/register/', data);
+  return response.data;
+};
+
+// Step 3: Verify email (from link)
+export const verifyEmail = async (token) => {
+  const response = await api.get(`/verify-email/${token}/`);
+  return response.data;
+};
+
+// Resend verification email
+export const resendVerification = async () => {
+  const response = await api.post('/resend-verification/');
+  return response.data;
+};
+
+// Login
+export const loginUser = async (data) => {
+  const response = await api.post('/login/', data);
+  return response.data;
+};
+
+// Get profile
+export const getProfile = async () => {
+  const response = await api.get('/profile/');
+  return response.data;
+};
+
+// Logout
+export const logoutUser = async (refreshToken) => {
+  const response = await api.post('/logout/', { refresh: refreshToken });
+  return response.data;
+};
+
 export default api;
