@@ -1,19 +1,15 @@
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import generics
+from rest_framework import generics, status
 from accounts.models import Citizen, User
-from .serializers import CitizenSerializer, RegistrationSerializer, CitizenshipVerificationSerializer,ProfileUpdateSerializer
+from elections.models import Candidate, Election
+from .serializers import CitizenSerializer, RegistrationSerializer, CitizenshipVerificationSerializer,ProfileUpdateSerializer, LoginSerializer, ElectionListSerializer, ElectionDetailSerializer, ElectionCreateUpdateSerializer, CandidateListSerializer, CandidateDetailSerializer, CandidateCreateUpdateSerializer
 from rest_framework import status
 
 from rest_framework_simplejwt.views import TokenRefreshView
-from .serializers import LoginSerializer
-
 
 from rest_framework.throttling import AnonRateThrottle
-
-from rest_framework.permissions import IsAuthenticated
-
 
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -391,3 +387,141 @@ class DashboardStatsView(APIView):
             'status': 'success',
             'data': stats
         }, status=status.HTTP_200_OK)
+    
+# Election Views
+from rest_framework import permissions
+class IsAdminUser(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.is_admin
+    def has_object_permission(self, request, view, obj):
+        return request.user and request.user.is_authenticated and request.user.is_admin
+    
+class ElectionListView(generics.ListCreateAPIView):
+    def get_queryset(self):
+        queryset = Election.objects.all()
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        return queryset.order_by('-created_at')
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return ElectionCreateUpdateSerializer
+        return ElectionListSerializer
+    
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsAdminUser()]
+        return [AllowAny()]
+    
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+class ElectionDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Get, update or delete election by ID"""
+    
+    queryset = Election.objects.all()
+    
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return ElectionDetailSerializer
+        return ElectionCreateUpdateSerializer
+    
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated(), IsAdminUser()]
+
+
+class ActiveElectionsView(APIView):
+    """Get currently active elections"""
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        now = timezone.now()
+        elections = Election.objects.filter(
+            status='active',
+            start_datetime__lte=now,
+            end_datetime__gte=now
+        ).order_by('start_datetime')
+        
+        serializer = ElectionListSerializer(elections, many=True)
+        return Response({
+            'status': 'success',
+            'count': elections.count(),
+            'data': serializer.data
+        })
+
+
+class UpcomingElectionsView(APIView):
+    """Get upcoming elections"""
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        now = timezone.now()
+        elections = Election.objects.filter(
+            status='upcoming',
+            start_datetime__gt=now
+        ).order_by('start_datetime')
+        
+        serializer = ElectionListSerializer(elections, many=True)
+        return Response({
+            'status': 'success',
+            'count': elections.count(),
+            'data': serializer.data
+        })
+
+
+class CompletedElectionsView(APIView):
+    """Get completed elections"""
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        now = timezone.now()
+        elections = Election.objects.filter(
+            status='closed'
+        ).order_by('-end_datetime')
+        
+        serializer = ElectionListSerializer(elections, many=True)
+        return Response({
+            'status': 'success',
+            'count': elections.count(),
+            'data': serializer.data
+        })
+    
+# ========== CANDIDATE VIEWS ==========
+
+class CandidateListView(generics.ListCreateAPIView):
+    """List candidates for an election or add new candidate"""
+    
+    serializer_class = CandidateListSerializer
+    
+    def get_queryset(self):
+        election_id = self.kwargs.get('election_id')
+        return Candidate.objects.filter(election_id=election_id).order_by('display_order', 'name')
+    
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsAdminUser()]
+        return [AllowAny()]
+    
+    def perform_create(self, serializer):
+        election_id = self.kwargs.get('election_id')
+        election = Election.objects.get(id=election_id)
+        serializer.save(election=election)
+
+
+class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Get, update or delete candidate by ID"""
+    
+    queryset = Candidate.objects.all()
+    
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return CandidateDetailSerializer
+        return CandidateCreateUpdateSerializer
+    
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsAuthenticated(), IsAdminUser()]

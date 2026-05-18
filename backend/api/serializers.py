@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from accounts.models import Citizen, User
+from elections.models import Election, Candidate
 import uuid
 
 
@@ -158,3 +159,69 @@ class ProfileUpdateSerializer(serializers.Serializer):
             if User.objects.filter(email=value).exclude(id=user.id).exists():
                 raise serializers.ValidationError('Email already in use')
         return value
+
+# Election Serializers
+
+class ElectionListSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    candidates_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Election
+        fields = ['id','title','description','status_display', 'start_datetime', 'end_datetime', 'candidates_count','created_at']
+    
+    def get_candidates_count(self, obj):
+        return obj.candidates.count()
+    
+class ElectionDetailSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    candidates = serializers.SerializerMethodField()
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+
+    class Meta:
+        model = Election
+        fields = ['id','title', 'description', 'status', 'status_display',
+            'start_datetime', 'end_datetime', 'candidates', 'created_by_name','is_active', 'created_at', 'updated_at'
+        ]
+    
+    def get_candidates(self, obj):
+        candidates = obj.candidates.all().order_by('display_order')
+        return CandidateListSerializer(candidates, many=True).data
+    
+class ElectionCreateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Election
+        fields = [
+            'id', 'title', 'description', 'start_datetime', 'end_datetime', 'status'
+        ]
+
+    def validate(self, data):
+        start = data.get('start_datetime')
+        end = data.get('end_datetime')
+
+        if start and end:
+            if start >= end:
+                raise serializers.ValidationError({
+                    'end_datetime': 'End Time must be adter start time'
+                })
+        return data
+
+class CandidateListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Candidate
+        fields = ['id', 'name', 'party', 'symbol', 'position', 'photo', 'display_order']
+    
+class CandidateDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Candidate
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at','updated_at']
+
+class CandidateCreateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Candidate
+        fields = [
+            'id', 'election', 'name', 'party', 'bio', 'photo', 
+            'symbol', 'position', 'display_order'
+        ]
+
