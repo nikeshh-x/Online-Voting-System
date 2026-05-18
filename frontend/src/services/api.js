@@ -108,4 +108,82 @@ export const updateProfile = async (data) => {
   return response.data;
 };
 
+// ========== ELECTION API ==========
+
+// Get all elections
+export const getElections = async (params = {}) => {
+  const queryString = new URLSearchParams(params).toString();
+  const url = queryString ? `/elections/?${queryString}` : '/elections/';
+  const response = await api.get(url);
+  return response.data;
+};
+
+// Get active elections
+export const getActiveElections = async () => {
+  const response = await api.get('/elections/active/');
+  return response.data;
+};
+
+// Get upcoming elections
+export const getUpcomingElections = async () => {
+  const response = await api.get('/elections/upcoming/');
+  return response.data;
+};
+
+// Get completed elections
+export const getCompletedElections = async () => {
+  const response = await api.get('/elections/completed/');
+  return response.data;
+};
+
+// Get single election details
+export const getElectionDetail = async (id) => {
+  const response = await api.get(`/elections/${id}/`);
+  return response.data;
+};
+
+// Create election (admin only)
+export const createElection = async (data) => {
+  const response = await api.post('/elections/', data);
+  return response.data;
+};
+
+// Update election (admin only)
+export const updateElection = async (id, data) => {
+  const response = await api.put(`/elections/${id}/`, data);
+  return response.data;
+};
+
+// Delete election (admin only)
+export const deleteElection = async (id) => {
+  const response = await api.delete(`/elections/${id}/`);
+  return response.data;
+};
+
+// ========== CANDIDATE API ==========
+
+// Get candidates for an election
+export const getCandidates = async (electionId) => {
+  const response = await api.get(`/elections/${electionId}/candidates/`);
+  return response.data;
+};
+
+// Add candidate (admin only)
+export const addCandidate = async (electionId, data) => {
+  const response = await api.post(`/elections/${electionId}/candidates/`, data);
+  return response.data;
+};
+
+// Update candidate (admin only)
+export const updateCandidate = async (id, data) => {
+  const response = await api.put(`/candidates/${id}/`, data);
+  return response.data;
+};
+
+// Delete candidate (admin only)
+export const deleteCandidate = async (id) => {
+  const response = await api.delete(`/candidates/${id}/`);
+  return response.data;
+};
+
 export default api;
