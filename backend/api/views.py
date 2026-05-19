@@ -2,20 +2,32 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import generics, status
-from accounts.models import Citizen, User
-from elections.models import Candidate, Election
-from .serializers import CitizenSerializer, RegistrationSerializer, CitizenshipVerificationSerializer,ProfileUpdateSerializer, LoginSerializer, ElectionListSerializer, ElectionDetailSerializer, ElectionCreateUpdateSerializer, CandidateListSerializer, CandidateDetailSerializer, CandidateCreateUpdateSerializer
-from rest_framework import status
-
 from rest_framework_simplejwt.views import TokenRefreshView
-
+from rest_framework import permissions
 from rest_framework.throttling import AnonRateThrottle
+
+from .serializers import (CitizenSerializer, 
+                          RegistrationSerializer, 
+                          CitizenshipVerificationSerializer,
+                          ProfileUpdateSerializer, 
+                          LoginSerializer, 
+                          ElectionListSerializer, 
+                          ElectionDetailSerializer, 
+                          ElectionCreateUpdateSerializer, 
+                          CandidateListSerializer, 
+                          CandidateDetailSerializer, 
+                          CandidateCreateUpdateSerializer, 
+                          VoteSerializer
+                        )
+from elections.models import Candidate, Election
+from accounts.models import Citizen, User
+from voting.models import Vote
 
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from datetime import timedelta
-
 from django.core.cache import cache
+
+from datetime import timedelta
 
 
 class HealthCheckView(APIView):
@@ -389,7 +401,7 @@ class DashboardStatsView(APIView):
         }, status=status.HTTP_200_OK)
     
 # Election Views
-from rest_framework import permissions
+
 class IsAdminUser(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and request.user.is_admin
@@ -525,3 +537,101 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method == 'GET':
             return [AllowAny()]
         return [IsAuthenticated(), IsAdminUser()]
+
+# Voting Views
+
+class CastVoteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = VoteSerializer(data=request.data, context={'request':request})
+
+        if serializer.is_valid():
+            user = request.user
+            election = serializer.validated_data['election']
+            candidate = serializer.validated_data['candidate']
+
+            vote = Vote.objects.create(
+                voter = user,
+                election = election,
+                candidate =  candidate,
+                ip_address = request.META.get('REMOTE_ADDR')
+            )
+
+            user.has_voted = True
+            user.save(update_fields=['has_voted'])
+
+            from audit.models import AuditLog
+            AuditLog.objects.create(
+                user=user,
+                action='vote_cast',
+                details={
+                    'election_id':election.id,
+                    'election_title':election.title,
+                    'candidate_id':candidate.id,
+                    'candidate_name':candidate.name,
+                    'ip_address':request.META.get('REMOTE_ADDR'),
+                },
+                ip_address = request.META.get('REMOTE_ADDR')
+            )
+
+            return Response({
+                'status':'success',
+                'message':'Your vote has been case successfully!',
+                'data': {
+                    'vote_hash': vote.vote_hash,
+                    'election': election.title,
+                    'candidate': candidate.name,
+                    'timestamp' : vote.timestamp   
+                }
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response({
+            'status': 'error',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+class CheckUserVoteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, election_id):
+        from voting.models import Vote
+
+        try:
+            vote = Vote.objects.get(voter=request.user, election_id=election_id)
+            return Response({
+                'status':'success',
+                'has_voted':True,
+                'data':{
+                    'candidate_name': vote.candidate.name,
+                    'timestamp': vote.timestamp,
+                    'vote_hash': vote.vote_hash[:16] + '...'
+                }
+            })
+        except Vote.DoesNotExist:
+            return Response({
+                'status':'success',
+                'has_voted': False
+            })
+        
+class UserVoteHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        votes = Vote.objects.filter(voter=request.user).select_related('election', 'candidate')
+
+        data = []
+        for vote in votes:
+            data.append({
+                'election_id':vote.election.id,
+                'election_title':vote.election.title,
+                'candidate_name':vote.candidate.name,
+                'candidate_party':vote.candidate.party,
+                'timestamp':vote.timestamp,
+                'vote_hash':vote.vote_hash[:16] + '...'
+            })
+        return Response({
+            'status': 'success',
+            'count': len(data),
+            'data': data
+        })

@@ -186,4 +186,24 @@ export const deleteCandidate = async (id) => {
   return response.data;
 };
 
+// ==============Voting API=========================
+
+// Check if user voted in election
+export const checkUserVote = async (electionId) => {
+  const response = await api.get(`/vote/check/${electionId}/`);
+  return response.data;
+};
+
+// Cast vote
+export const castVote = async (data) => {
+  const response = await api.post('/vote/', data);
+  return response.data;
+};
+
+// Get user vote history
+export const getVoteHistory = async () => {
+  const response = await api.get('/vote/history/');
+  return response.data;
+};
+
 export default api;

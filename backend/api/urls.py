@@ -20,6 +20,9 @@ from .views import (
     CompletedElectionsView,
     CandidateListView,
     CandidateDetailView,
+    CastVoteView,
+    CheckUserVoteView,
+    UserVoteHistoryView,
 )
 
 urlpatterns = [
@@ -52,4 +55,9 @@ urlpatterns = [
     # Candidate endpoints
     path('elections/<int:election_id>/candidates/', CandidateListView.as_view(), name='candidate-list'),
     path('candidates/<int:pk>/', CandidateDetailView.as_view(), name='candidate-detail'),
+
+    # Voting URLs
+    path('vote/', CastVoteView.as_view(), name='cast-vote'),
+    path('vote/check/<int:election_id>/', CheckUserVoteView.as_view(), name='check-vote'),
+    path('vote/history/', UserVoteHistoryView.as_view(), name='vote-history'),
 ]

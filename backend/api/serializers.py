@@ -225,3 +225,49 @@ class CandidateCreateUpdateSerializer(serializers.ModelSerializer):
             'symbol', 'position', 'display_order'
         ]
 
+# Vote Serializers
+
+class VoteSerializer(serializers.Serializer):
+    election_id = serializers.IntegerField()
+    candidate_id = serializers.IntegerField()
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        election_id = attrs.get('election_id') 
+        candidate_id = attrs.get('candidate_id')
+
+        from django.utils import timezone
+        from elections.models import Election, Candidate
+        from voting.models import Vote
+
+        try:
+            election = Election.objects.get(id=election_id)
+        except Election.DoesNotExist:
+            raise serializers.ValidationError('Election not found') 
+        
+        if election.status != 'active':
+            raise serializers.ValidationError('This election is not active')
+        
+        now = timezone.now()
+        if now < election.start_datetime:
+            raise serializers.ValidationError('Election has not started yet')
+        if now > election.end_datetime:
+            raise serializers.ValidationError('Election has ended')
+        
+        try:
+            candidate = Candidate.objects.get(id=candidate_id, election=election)
+        except Candidate.DoesNotExist:
+            raise serializers.ValidationError('Candidate not found in this election')
+        
+        if Vote.objects.filter(voter=user, election=election).exists():
+            raise serializers.ValidationError('You have already voted in this election.')
+        
+        if not user.is_email_verified:
+            raise serializers.ValidationError('Please verify your email before voting')
+        
+        if not user.is_email_verified:
+            raise serializers.ValidationError('Please Verify your email.')
+        
+        attrs['election'] = election
+        attrs['candidate'] = candidate
+        return attrs

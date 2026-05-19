@@ -4,6 +4,7 @@ import {
   User,
   Mail,
   MapPin,
+  IdCard,
   Calendar,
   Phone,
   CheckCircle,
@@ -186,7 +187,7 @@ function ProfilePage() {
 
             {/* Citizenship Number - Read Only */}
             <div className="flex items-center gap-3 border-b pb-3">
-              <MapPin className="h-5 w-5 text-gray-400" />
+              <IdCard className="h-5 w-5 text-gray-400" />
               <div className="flex-1">
                 <p className="text-sm text-gray-500">Citizenship Number</p>
                 <p className="font-medium text-gray-900 font-mono text-sm">

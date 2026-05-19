@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, Lock, MapPin } from 'lucide-react';
+import { ShieldCheck, Lock, MapPin,IdCard } from 'lucide-react';
 import { loginUser } from '../services/api';
 
 function LoginPage() {
@@ -78,7 +78,7 @@ function LoginPage() {
                 Citizenship Number
               </label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <IdCard className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   name="citizenship_number"

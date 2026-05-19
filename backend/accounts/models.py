@@ -43,6 +43,7 @@ class User(AbstractUser):
     email_verification_token = models.UUIDField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     last_login = models.DateTimeField(null=True, blank=True)
+    has_voted = models.BooleanField(default=False)
 
     def __str__(self):
         if self.citizen and self.citizen.full_name:
