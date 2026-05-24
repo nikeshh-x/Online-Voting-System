@@ -206,4 +206,21 @@ export const getVoteHistory = async () => {
   return response.data;
 };
 
+// Get election results
+export const getElectionResults = async (electionId) => {
+  try {
+    const response = await api.get(`/elections/${electionId}/results/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching results:', error);
+    return { status: 'error', message: 'Failed to load results' };
+  }
+};
+
+// Get admin statistics
+export const getAdminStats = async () => {
+  const response = await api.get('/admin/stats/');
+  return response.data;
+};
+
 export default api;

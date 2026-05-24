@@ -166,6 +166,12 @@ function ElectionDetailPage() {
                   {election.status_display || election.status}
                 </span>
               </div>
+              <Link
+                to={`/results/${id}`}
+                className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition"
+              >
+                View Results
+              </Link>
             </div>
           </div>
 

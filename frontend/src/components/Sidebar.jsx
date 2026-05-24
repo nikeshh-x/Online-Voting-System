@@ -29,14 +29,21 @@ const Sidebar = () => {
   // Get user from localStorage
   const userStr = localStorage.getItem("user");
   const user = userStr ? JSON.parse(userStr) : null;
+  const isAdmin = user?.is_admin || false;
 
-  // Navigation items for authenticated users
-  const navItems = [
+  // Base navigation items for authenticated users
+  const baseNavItems = [
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Elections", path: "/elections", icon: Vote },
     { name: "Results", path: "/results", icon: BarChart3 },
     { name: "Profile", path: "/profile", icon: UserCircle },
   ];
+
+  // Add Admin item if user is admin
+  const navItems = [...baseNavItems];
+  if (isAdmin) {
+    navItems.push({ name: "Admin Dashboard", path: "/admin", icon: LayoutDashboard });
+  }
 
   // Auth items for non-authenticated users
   const authItems = [
@@ -85,7 +92,7 @@ const Sidebar = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 min-h-screen bg-linear-to-b from-gray-900 to-gray-800 text-white transition-all duration-300 z-50
+        className={`fixed left-0 top-0 min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white transition-all duration-300 z-50
           ${isCollapsed ? "w-20" : "w-64"}
           lg:relative lg:translate-x-0
           ${isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}

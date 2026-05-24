@@ -271,7 +271,10 @@ class LoginView(APIView):
                         'id': user.id,
                         'email': user.email,
                         'full_name': user.citizen.full_name if user.citizen else user.username,
-                        'is_verified': user.is_email_verified
+                        'is_verified': user.is_email_verified,
+                        'is_admin': user.is_admin,
+                        'has_voted': user.has_voted,
+                        'date_joined': user.date_joined,
                     },
                     'tokens': tokens
                 }
@@ -692,5 +695,88 @@ class ElectionResultsView(APIView):
                 'results': results,
                 'winner': winner,
                 'is_tie': is_tie
+            }
+        })
+
+class AdminStatsView(APIView):
+    """Get statistics for admin dashboard"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Check if user is admin
+        if not request.user.is_admin:
+            return Response({
+                'status': 'error',
+                'message': 'Admin access required'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        from accounts.models import Citizen, User
+        from elections.models import Election
+        from voting.models import Vote
+        from django.utils import timezone
+        
+        # Citizen stats
+        total_citizens = Citizen.objects.count()
+        registered_citizens = Citizen.objects.filter(is_registered=True).count()
+        
+        # User stats
+        total_users = User.objects.count()
+        verified_users = User.objects.filter(is_email_verified=True).count()
+        
+        # Election stats
+        total_elections = Election.objects.count()
+        now = timezone.now()
+        active_elections = Election.objects.filter(
+            status='active',
+            start_datetime__lte=now,
+            end_datetime__gte=now
+        ).count()
+        upcoming_elections = Election.objects.filter(
+            status='upcoming',
+            start_datetime__gt=now
+        ).count()
+        closed_elections = Election.objects.filter(status='closed').count()
+        
+        # Vote stats
+        total_votes = Vote.objects.count()
+        
+        # Voter turnout (percentage of registered citizens who voted)
+        turnout_percentage = round((total_votes / registered_citizens) * 100, 2) if registered_citizens > 0 else 0
+        
+        # Recent activity (last 5 votes)
+        recent_votes = Vote.objects.select_related('voter', 'election', 'candidate').order_by('-timestamp')[:5]
+        recent_activity = []
+        for vote in recent_votes:
+            recent_activity.append({
+                'timestamp': vote.timestamp.isoformat(),
+                'voter_email': vote.voter.email,
+                'election_title': vote.election.title,
+                'candidate_name': vote.candidate.name
+            })
+        
+        return Response({
+            'status': 'success',
+            'data': {
+                'citizens': {
+                    'total': total_citizens,
+                    'registered': registered_citizens,
+                    'unregistered': total_citizens - registered_citizens
+                },
+                'users': {
+                    'total': total_users,
+                    'verified': verified_users,
+                    'unverified': total_users - verified_users
+                },
+                'elections': {
+                    'total': total_elections,
+                    'active': active_elections,
+                    'upcoming': upcoming_elections,
+                    'closed': closed_elections
+                },
+                'votes': {
+                    'total': total_votes,
+                    'turnout_percentage': turnout_percentage
+                },
+                'recent_activity': recent_activity
             }
         })
