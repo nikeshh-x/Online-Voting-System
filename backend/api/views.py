@@ -433,9 +433,12 @@ class ElectionListView(generics.ListCreateAPIView):
         serializer.save(created_by=self.request.user)
 
 class ElectionDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Get, update or delete election by ID"""
-    
     queryset = Election.objects.all()
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context
     
     def get_serializer_class(self):
         if self.request.method == 'GET':

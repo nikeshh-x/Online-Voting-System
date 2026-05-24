@@ -186,7 +186,8 @@ class ElectionDetailSerializer(serializers.ModelSerializer):
     
     def get_candidates(self, obj):
         candidates = obj.candidates.all().order_by('display_order')
-        return CandidateListSerializer(candidates, many=True).data
+        # Pass request context to serializer
+        return CandidateListSerializer(candidates, many=True, context=self.context).data
     
 class ElectionCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -207,9 +208,19 @@ class ElectionCreateUpdateSerializer(serializers.ModelSerializer):
         return data
 
 class CandidateListSerializer(serializers.ModelSerializer):
+    photo_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = Candidate
-        fields = ['id', 'name', 'party', 'symbol', 'position', 'photo', 'display_order']
+        fields = ['id', 'name', 'party', 'symbol', 'position', 'photo_url', 'display_order']
+    
+    def get_photo_url(self, obj):
+        if obj.photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.photo.url)
+            return obj.photo.url
+        return None
     
 class CandidateDetailSerializer(serializers.ModelSerializer):
     class Meta:

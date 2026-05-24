@@ -12,7 +12,8 @@ import ProfilePage from "./pages/ProfilePage";
 import ElectionsPage from "./pages/ElectionsPage";
 import ElectionDetailPage from "./pages/ElectionDetailPage";
 import ResultsPage from "./pages/ResultsPage";
-import AdminDashboardPage from './pages/AdminDashboardPage';
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import ResultsListPage from "./pages/ResultsListPage";
 
 function App() {
   return (
@@ -91,6 +92,14 @@ function App() {
           element={
             <PrivateRoute>
               <ResultsPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/results"
+          element={
+            <PrivateRoute>
+              <ResultsListPage />
             </PrivateRoute>
           }
         />

@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 
 class Citizen(models.Model):
     GENDER_CHOICES = [
@@ -28,6 +29,24 @@ class Citizen(models.Model):
 
     def __str__(self):
         return f"{self.citizenship_number} - {self.full_name}"
+    
+    def clean(self):
+        # Validate citizenship number format
+        if self.citizenship_number:
+            # Remove spaces and hyphens
+            cleaned = self.citizenship_number.replace('-', '').replace(' ', '')
+            
+            # Check if contains only digits
+            if not cleaned.isdigit():
+                raise ValidationError({'citizenship_number': 'Citizenship number must contain only digits and hyphens'})
+            
+            # Check length (Nepal citizenship numbers are typically 8-15 digits)
+            if len(cleaned) < 8 or len(cleaned) > 15:
+                raise ValidationError({'citizenship_number': 'Citizenship number must be 8-15 digits'})
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()  # Run validation before saving
+        super().save(*args, **kwargs)
     
     class Meta:
         db_table = 'citizens'

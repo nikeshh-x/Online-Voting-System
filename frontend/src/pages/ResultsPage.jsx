@@ -206,7 +206,7 @@ function ResultsPage() {
                 <Trophy className="h-8 w-8 text-yellow-500" />
               </div>
               <div>
-                <p className="text-sm opacity-90">🏆 Winner</p>
+                <p className="text-sm opacity-90">Winner</p>
                 <h2 className="text-2xl font-bold">{results.winner.name}</h2>
                 <p className="text-sm opacity-90">
                   {results.winner.party || 'Independent'} • {results.winner.votes} votes ({results.winner.percentage}%)
