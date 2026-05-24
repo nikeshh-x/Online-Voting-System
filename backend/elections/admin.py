@@ -36,10 +36,23 @@ class ElectionAdmin(admin.ModelAdmin, ExportCsvMixin):
             'fields': ('start_datetime', 'end_datetime', 'status')
         }),
         ('Metadata', {
-            'fields': ('created_by', 'created_at', 'updated_at'),
+            'fields': ('created_at', 'updated_at'),  # Removed created_by from here
             'classes': ('collapse',)
         }),
     )
+
+    # Add this method to auto-set created_by
+    def save_model(self, request, obj, form, change):
+        if not change:  # New object
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+    # Hide created_by from the form (optional)
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if 'created_by' in form.base_fields:
+            form.base_fields['created_by'].disabled = True
+        return form
 
     def activate_elections(self, request, queryset):
         queryset.update(status='active')

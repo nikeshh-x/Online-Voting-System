@@ -19,7 +19,9 @@ class AuditLog(models.Model):
     
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,  # Changed from CASCADE to SET_NULL
+        null=True,                   # Allow null
+        blank=True,                  # Allow blank
         related_name='audit_logs'
     )
     action = models.CharField(max_length=50, choices=ACTION_CHOICES)
@@ -28,7 +30,7 @@ class AuditLog(models.Model):
     ip_address = models.GenericIPAddressField()
     
     def __str__(self):
-        return f"{self.action} by {self.user.email} at {self.timestamp}"
+        return f"{self.action} by {self.user.email if self.user else 'Anonymous'} at {self.timestamp}"
     
     class Meta:
         db_table = 'audit_logs'

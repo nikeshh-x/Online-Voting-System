@@ -26,6 +26,7 @@ from voting.models import Vote
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.core.cache import cache
+import uuid
 
 from datetime import timedelta
 
@@ -148,31 +149,32 @@ class VerifyEmailView(APIView):
     permission_classes = [AllowAny]
     
     def get(self, request, token):
-        print(f"DEBUG: Received token: {token}")  # Debug
+        # Clean the token - remove any trailing '=' or other invalid characters
+        token = token.strip().rstrip('=')
+        
         try:
-            user = User.objects.get(email_verification_token=token, is_email_verified=False)
-
-            # Check if already verified
-            if user.is_email_verified:
-                return Response({
-                    'status': 'success',
-                    'message': 'Email already verified! Please login.'
-                }, status=status.HTTP_200_OK)
+            # Validate UUID format
+            token_uuid = uuid.UUID(token)
+        except ValueError:
+            return Response({
+                'status': 'error',
+                'message': 'Invalid verification token format.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email_verification_token=token_uuid, is_email_verified=False)
             
-            from django.utils import timezone
-            from datetime import timedelta
-            
+            # Check if token expired (24 hours)
             if user.created_at < timezone.now() - timedelta(hours=24):
                 return Response({
                     'status': 'error',
                     'message': 'Verification link has expired. Please request a new one.'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
+            # Verify the user
             user.is_email_verified = True
             user.email_verification_token = None
             user.save()
-
-            print(f"User {user.email} verified successfully")  # Debug
             
             return Response({
                 'status': 'success',
@@ -181,7 +183,7 @@ class VerifyEmailView(APIView):
             
         except User.DoesNotExist:
             # Check if already verified
-            user = User.objects.filter(email_verification_token=token).first()
+            user = User.objects.filter(email_verification_token=token_uuid).first()
             if user and user.is_email_verified:
                 return Response({
                     'status': 'success',

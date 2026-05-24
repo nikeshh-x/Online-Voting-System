@@ -1,0 +1,51 @@
+citizenship_number,full_name,date_of_birth,district,municipality,ward_number,father_name,mother_name,gender
+11-39-40-10004,Gita Gurung,1965-03-20,Pokhara,Pokhara Metro,14,Rajesh Gurung,Laxmi Gurung,M
+14-72-99-10013,Sima Karki,1991-08-24,Bhaktapur,Bhaktapur Municipality,12,Laxmi Karki,Sita Karki,O
+16-63-42-10021,Mina Tamang,1985-04-07,Chitwan,Khairhani,11,Hari Tamang,Sita Tamang,O
+19-28-56-10040,Rita Tamang,1972-08-20,Chitwan,Khairhani,1,Mohan Tamang,Gita Tamang,F
+24-99-84-10008,Sujata Thapa,1961-08-12,Morang,Biratnagar,15,Mohan Thapa,Gita Thapa,M
+25-73-76-10016,Suresh Karki,1967-08-04,Lalitpur,Mahalaxmi,7,Uma Karki,Laxmi Karki,O
+25-79-83-10025,Krishna Bhandari,1964-06-12,Sunsari,Itahari,4,Nabin Bhandari,Mina Bhandari,M
+26-11-60-10009,Krishna Sharma,1956-09-25,Chitwan,Bharatpur,5,Suresh Sharma,Laxmi Sharma,M
+26-65-52-10030,Mohan Rai,1958-12-28,Jhapa,Birtamod,6,Rajesh Rai,Gita Rai,M
+36-10-14-10035,Sima Thapa,1962-04-10,Jhapa,Birtamod,1,Gita Thapa,Gita Thapa,M
+38-15-46-10019,Uma Tamang,1957-01-20,Kathmandu,Kathmandu Metro,1,Nabin Tamang,Laxmi Tamang,O
+38-76-62-10014,Mohan Poudel,1968-03-17,Morang,Biratnagar,12,Sunita Poudel,Laxmi Poudel,M
+38-98-97-10010,Shyam Manandhar,1966-04-02,Chitwan,Bharatpur,9,Suresh Manandhar,Radha Manandhar,F
+39-76-39-10045,Bikram Manandhar,1999-11-23,Chitwan,Ratnanagar,10,Laxmi Manandhar,Gita Manandhar,O
+41-40-16-10002,Sima Sharma,1963-07-28,Lalitpur,Mahalaxmi,14,Rajesh Sharma,Rita Sharma,F
+42-60-98-10047,Rita Karki,1990-04-20,Kaski,Pokhara Metro,3,Ram Karki,Sita Karki,F
+45-69-30-10027,Mohan Poudel,1953-11-22,Morang,Biratnagar,5,Mohan Poudel,Mina Poudel,O
+46-85-49-10017,Krishna Poudel,1971-10-12,Lalitpur,Godawari,14,Suresh Poudel,Gita Poudel,M
+48-45-10-10036,Uma Poudel,1992-06-22,Sunsari,Itahari,2,Laxmi Poudel,Rita Poudel,F
+54-46-49-10003,Uma Manandhar,1976-01-03,Morang,Biratnagar,6,Sima Manandhar,Radha Manandhar,M
+54-83-59-10005,Gita Tamang,1952-02-10,Morang,Biratnagar,11,Nabin Tamang,Laxmi Tamang,M
+56-29-66-10012,Hari Poudel,1974-11-28,Morang,Biratnagar,2,Mohan Poudel,Rita Poudel,F
+57-60-18-10041,Mina Adhikari,1959-03-24,Chitwan,Bharatpur,12,Krishna Adhikari,Laxmi Adhikari,M
+58-24-97-10034,Rajesh Poudel,1966-12-25,Bhaktapur,Bhaktapur Municipality,14,Rajesh Poudel,Laxmi Poudel,O
+58-41-96-10024,Suresh Gurung,1957-09-12,Lalitpur,Godawari,5,Laxmi Gurung,Laxmi Gurung,M
+58-44-34-10039,Laxmi Poudel,1968-09-23,Bhaktapur,Changunarayan,10,Suresh Poudel,Laxmi Poudel,F
+59-59-25-10042,Laxmi Manandhar,1969-10-09,Sunsari,Inaruwa,13,Sunita Manandhar,Rita Manandhar,F
+60-61-89-10033,Sujata Bhandari,1979-02-23,Sunsari,Inaruwa,15,Hari Bhandari,Gita Bhandari,O
+62-41-65-10050,Ram Karki,2000-05-26,Kathmandu,Chandragiri,8,Rajesh Karki,Laxmi Karki,O
+66-15-28-10049,Shyam Karki,1963-06-20,Sunsari,Dharan,13,Rita Karki,Radha Karki,M
+66-67-76-10044,Nabin Karki,2002-05-12,Sunsari,Dharan,15,Mina Karki,Mina Karki,M
+73-40-14-10015,Uma Tamang,2001-09-28,Pokhara,Pokhara Metro,10,Laxmi Tamang,Sita Tamang,M
+73-45-41-10031,Mina Rai,1968-07-16,Bhaktapur,Changunarayan,1,Mina Rai,Sita Rai,F
+74-64-41-10006,Bikram Thapa,1966-07-05,Lalitpur,Lalitpur Metro,10,Bikram Thapa,Gita Thapa,F
+74-85-26-10007,Sima Poudel,1976-11-13,Sunsari,Dharan,14,Rajesh Poudel,Gita Poudel,O
+76-28-68-10029,Laxmi Bhandari,2002-11-03,Jhapa,Damak,1,Radha Bhandari,Laxmi Bhandari,F
+77-98-89-10018,Sunita Sharma,1967-05-24,Morang,Biratnagar,2,Ram Sharma,Radha Sharma,F
+79-42-97-10020,Ram Rai,1976-05-31,Morang,Biratnagar,11,Rajesh Rai,Laxmi Rai,M
+79-79-60-10001,Rajesh Sharma,1998-02-26,Pokhara,Pokhara Metro,11,Gita Sharma,Laxmi Sharma,M
+85-76-68-10046,Laxmi Sharma,1992-08-02,Dhading,Dhading Besi,10,Rita Sharma,Mina Sharma,O
+86-47-73-10011,Sujata Sharma,1959-10-12,Jhapa,Birtamod,13,Gita Sharma,Rita Sharma,O
+86-92-44-10032,Rita Bhandari,1971-09-01,Lalitpur,Lalitpur Metro,11,Rajesh Bhandari,Sita Bhandari,F
+90-50-66-10026,Gita Thapa,1958-05-23,Chitwan,Ratnanagar,9,Hari Thapa,Sita Thapa,O
+93-15-58-10037,Rita Gurung,1988-11-28,Kathmandu,Kirtipur,1,Bikram Gurung,Rita Gurung,M
+94-85-16-10028,Uma Adhikari,1953-12-24,Bhaktapur,Madhyapur Thimi,3,Nabin Adhikari,Radha Adhikari,O
+95-17-98-10038,Nabin Poudel,1992-05-13,Kaski,Pokhara Metro,4,Nabin Poudel,Radha Poudel,M
+96-29-25-10022,Suresh Gurung,1972-03-19,Sunsari,Itahari,11,Sunita Gurung,Rita Gurung,F
+96-63-61-10023,Mina Adhikari,1982-08-10,Sunsari,Dharan,7,Nabin Adhikari,Gita Adhikari,O
+97-46-23-10048,Hari Bhandari,1961-12-23,Chitwan,Ratnanagar,11,Shyam Bhandari,Rita Bhandari,O
+99-79-69-10043,Suresh Sharma,1966-03-01,Lalitpur,Lalitpur Metro,2,Mina Sharma,Sita Sharma,O

@@ -195,7 +195,7 @@ function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl shadow-sm p-6 text-black">
+          <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl shadow-sm p-6 text-white">
             <h3 className="text-lg font-semibold mb-4">System Status</h3>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
