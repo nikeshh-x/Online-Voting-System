@@ -23,6 +23,7 @@ from .views import (
     CastVoteView,
     CheckUserVoteView,
     UserVoteHistoryView,
+    ElectionResultsView
 )
 
 urlpatterns = [
@@ -60,4 +61,7 @@ urlpatterns = [
     path('vote/', CastVoteView.as_view(), name='cast-vote'),
     path('vote/check/<int:election_id>/', CheckUserVoteView.as_view(), name='check-vote'),
     path('vote/history/', UserVoteHistoryView.as_view(), name='vote-history'),
+
+    # Result URLs 
+    path('elections/<int:election_id>/results/', ElectionResultsView.as_view(), name='election-results'),
 ]

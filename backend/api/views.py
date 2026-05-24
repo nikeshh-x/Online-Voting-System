@@ -314,7 +314,6 @@ class ProfileView(APIView):
             }
         }, status=status.HTTP_200_OK)
     
-
 class ProfileUpdateView(APIView):
     permission_classes = [IsAuthenticated]
     
@@ -403,7 +402,6 @@ class DashboardStatsView(APIView):
         }, status=status.HTTP_200_OK)
     
 # Election Views
-
 class IsAdminUser(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and request.user.is_admin
@@ -446,7 +444,6 @@ class ElectionDetailView(generics.RetrieveUpdateDestroyAPIView):
             return [AllowAny()]
         return [IsAuthenticated(), IsAdminUser()]
 
-
 class ActiveElectionsView(APIView):
     """Get currently active elections"""
     permission_classes = [AllowAny]
@@ -466,7 +463,6 @@ class ActiveElectionsView(APIView):
             'data': serializer.data
         })
 
-
 class UpcomingElectionsView(APIView):
     """Get upcoming elections"""
     permission_classes = [AllowAny]
@@ -484,7 +480,6 @@ class UpcomingElectionsView(APIView):
             'count': elections.count(),
             'data': serializer.data
         })
-
 
 class CompletedElectionsView(APIView):
     """Get completed elections"""
@@ -504,7 +499,6 @@ class CompletedElectionsView(APIView):
         })
     
 # ========== CANDIDATE VIEWS ==========
-
 class CandidateListView(generics.ListCreateAPIView):
     """List candidates for an election or add new candidate"""
     
@@ -524,7 +518,6 @@ class CandidateListView(generics.ListCreateAPIView):
         election = Election.objects.get(id=election_id)
         serializer.save(election=election)
 
-
 class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Get, update or delete candidate by ID"""
     
@@ -541,7 +534,6 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
         return [IsAuthenticated(), IsAdminUser()]
 
 # Voting Views
-
 class CastVoteView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -636,4 +628,69 @@ class UserVoteHistoryView(APIView):
             'status': 'success',
             'count': len(data),
             'data': data
+        })
+
+class ElectionResultsView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request, election_id):
+        try:
+            election = Election.objects.get(id=election_id)
+        except Election.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'message': 'Election not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        votes = Vote.objects.filter(election=election)
+        total_votes = votes.count()
+        
+        candidate_votes = {}
+        for vote in votes:
+            candidate_id = vote.candidate.id
+            if candidate_id not in candidate_votes:
+                candidate_votes[candidate_id] = {
+                    'name': vote.candidate.name,
+                    'party': vote.candidate.party or '',
+                    'votes': 0
+                }
+            candidate_votes[candidate_id]['votes'] += 1
+        
+        for candidate_id in candidate_votes:
+            if total_votes > 0:
+                candidate_votes[candidate_id]['percentage'] = round(
+                    (candidate_votes[candidate_id]['votes'] / total_votes) * 100, 2
+                )
+            else:
+                candidate_votes[candidate_id]['percentage'] = 0
+        
+        results = list(candidate_votes.values())
+        results.sort(key=lambda x: x['votes'], reverse=True)
+        
+        winner = results[0] if results else None
+        is_tie = False
+        if winner and len(results) > 1:
+            is_tie = winner['votes'] == results[1]['votes']
+        
+        # Calculate turnout (based on total votes, not registered voters for demo)
+        turnout_percentage = round((total_votes / 100) * 100, 2) if total_votes > 0 else 0
+        
+        return Response({
+            'status': 'success',
+            'data': {
+                'election': {
+                    'id': election.id,
+                    'title': election.title,
+                    'description': election.description or '',
+                    'status': election.status,
+                    'status_display': election.get_status_display(),
+                    'start_datetime': election.start_datetime.isoformat() if election.start_datetime else None,
+                    'end_datetime': election.end_datetime.isoformat() if election.end_datetime else None,
+                },
+                'total_votes': total_votes,
+                'turnout_percentage': turnout_percentage,
+                'results': results,
+                'winner': winner,
+                'is_tie': is_tie
+            }
         })
