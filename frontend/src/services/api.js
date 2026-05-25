@@ -223,4 +223,10 @@ export const getAdminStats = async () => {
   return response.data;
 };
 
+// Verify vote
+export const verifyVote = async (voteHash) => {
+  const response = await api.get(`/vote/verify/${voteHash}/`);
+  return response.data;
+};
+
 export default api;
