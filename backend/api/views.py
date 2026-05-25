@@ -24,13 +24,13 @@ from accounts.models import Citizen, User
 from voting.models import Vote
 
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from django.core.cache import cache
 import uuid
 import hashlib
 from django.utils import timezone
-
-from datetime import timedelta
+from audit.models import AuditLog
+from django.db.models import Q
+from datetime import datetime, timedelta
 
 
 class HealthCheckView(APIView):
@@ -874,3 +874,85 @@ class VerifyVoteView(APIView):
                 'status': 'error',
                 'message': 'Vote not found'
             }, status=status.HTTP_404_NOT_FOUND)
+        
+class AdminAuditLogView(APIView):
+    """Get audit logs for admin dashboard"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Check if user is admin
+        if not request.user.is_admin:
+            return Response({
+                'status': 'error',
+                'message': 'Admin access required'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Get query parameters
+        action = request.query_params.get('action')
+        user_email = request.query_params.get('user')
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 50))
+        
+        # Build queryset
+        queryset = AuditLog.objects.select_related('user')
+        
+        # Apply filters
+        if action:
+            queryset = queryset.filter(action=action)
+        if user_email:
+            queryset = queryset.filter(user__email__icontains=user_email)
+        if date_from:
+            try:
+                from_date = datetime.strptime(date_from, '%Y-%m-%d')
+                queryset = queryset.filter(timestamp__gte=from_date)
+            except:
+                pass
+        if date_to:
+            try:
+                to_date = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+                queryset = queryset.filter(timestamp__lte=to_date)
+            except:
+                pass
+        
+        # Get total count
+        total = queryset.count()
+        
+        # Paginate
+        start = (page - 1) * page_size
+        end = start + page_size
+        logs = queryset[start:end]
+        
+        # Serialize
+        data = []
+        for log in logs:
+            data.append({
+                'id': log.id,
+                'user': {
+                    'id': log.user.id if log.user else None,
+                    'email': log.user.email if log.user else 'Anonymous'
+                },
+                'action': log.action,
+                'action_display': dict(AuditLog.ACTION_CHOICES).get(log.action, log.action),
+                'details': log.details,
+                'ip_address': log.ip_address,
+                'timestamp': log.timestamp.isoformat()
+            })
+        
+        return Response({
+            'status': 'success',
+            'data': {
+                'logs': data,
+                'pagination': {
+                    'page': page,
+                    'page_size': page_size,
+                    'total': total,
+                    'total_pages': (total + page_size - 1) // page_size
+                },
+                'filters': {
+                    'actions': dict(AuditLog.ACTION_CHOICES),
+                    'available_actions': list(dict(AuditLog.ACTION_CHOICES).keys())
+                }
+            }
+        })
