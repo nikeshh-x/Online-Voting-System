@@ -28,6 +28,7 @@ from .views import (
     VoteHistoryView,
     VerifyVoteView,
     AdminAuditLogView,
+    AdminLoginView,
 )
 
 urlpatterns = [
@@ -73,6 +74,9 @@ urlpatterns = [
 
     # Audit Logs
     path('admin/audit-logs/', AdminAuditLogView.as_view(), name='admin-audit-logs'),
+
+    # Admin Login
+    path('admin/login/', AdminLoginView.as_view(), name='admin-login'),
     
 
     path('admin/stats/', AdminStatsView.as_view(), name='admin-stats'),

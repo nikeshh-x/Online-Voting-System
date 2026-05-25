@@ -12,9 +12,10 @@ import ProfilePage from "./pages/ProfilePage";
 import ElectionsPage from "./pages/ElectionsPage";
 import ElectionDetailPage from "./pages/ElectionDetailPage";
 import ResultsPage from "./pages/ResultsPage";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
 import ResultsListPage from "./pages/ResultsListPage";
-import VoteHistoryPage from './pages/VoteHistoryPage';
+import VoteHistoryPage from "./pages/VoteHistoryPage";
+import AdminLoginPage from "./pages/AdminLoginPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 
 function App() {
   return (
@@ -54,7 +55,6 @@ function App() {
           }
         />
         <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
-
         {/* Protected Routes */}
         <Route
           path="/dashboard"
@@ -112,7 +112,6 @@ function App() {
             </PrivateRoute>
           }
         />
-
         <Route
           path="/vote-history"
           element={
@@ -121,7 +120,16 @@ function App() {
             </PrivateRoute>
           }
         />
-
+        // Admin routes
+        <Route path="/admin-login" element={<AdminLoginPage />} />
+        <Route
+          path="/admin"
+          element={
+            <PrivateRoute requireAdmin={true}>
+              <AdminDashboardPage />
+            </PrivateRoute>
+          }
+        />
         <Route
           path="/"
           element={

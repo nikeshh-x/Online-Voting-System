@@ -956,3 +956,70 @@ class AdminAuditLogView(APIView):
                 }
             }
         })
+    
+
+# Admin Views
+
+class AdminLoginView(APIView):
+    """Login for admin users using email/username"""
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        from django.contrib.auth import authenticate
+        from rest_framework_simplejwt.tokens import RefreshToken
+        
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        if not username or not password:
+            return Response({
+                'status': 'error',
+                'message': 'Username and password required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = authenticate(username=username, password=password)
+        
+        if not user:
+            return Response({
+                'status': 'error',
+                'message': 'Invalid credentials'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Check if user is admin (either is_admin field or is_staff)
+        if not (user.is_admin or user.is_staff):
+            return Response({
+                'status': 'error',
+                'message': 'Not authorized as admin'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        
+        # Create audit log
+        from audit.models import AuditLog
+        AuditLog.objects.create(
+            user=user,
+            action='admin_login',
+            details={
+                'ip_address': request.META.get('REMOTE_ADDR'),
+                'user_agent': request.META.get('HTTP_USER_AGENT', '')
+            },
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        return Response({
+            'status': 'success',
+            'message': 'Admin login successful',
+            'data': {
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'username': user.username,
+                    'is_admin': user.is_admin or user.is_staff,
+                },
+                'tokens': {
+                    'access': str(refresh.access_token),
+                    'refresh': str(refresh),
+                }
+            }
+        })

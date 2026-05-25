@@ -15,6 +15,14 @@ function AdminDashboardPage() {
   const [showRecentActivity, setShowRecentActivity] = useState(true);
 
   useEffect(() => {
+    const isAdmin = localStorage.getItem('is_admin') === 'true';
+    const adminToken = localStorage.getItem('admin_access_token');
+  
+    if (!isAdmin || !adminToken) {
+    navigate('/admin-login');
+    return;
+  }
+
     fetchStats();
   }, []);
 
