@@ -27,6 +27,8 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.core.cache import cache
 import uuid
+import hashlib
+from django.utils import timezone
 
 from datetime import timedelta
 
@@ -544,6 +546,17 @@ class CastVoteView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        # Rate limiting: 10 votes per hour per IP
+        ip_address = request.META.get('REMOTE_ADDR')
+        rate_limit_key = f"vote_rate_limit_{ip_address}"
+        vote_count = cache.get(rate_limit_key, 0)
+        
+        if vote_count >= 10:
+            return Response({
+                'status': 'error',
+                'message': 'Rate limit exceeded. Maximum 10 votes per hour allowed.'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        
         serializer = VoteSerializer(data=request.data, context={'request':request})
 
         if serializer.is_valid():
@@ -551,12 +564,24 @@ class CastVoteView(APIView):
             election = serializer.validated_data['election']
             candidate = serializer.validated_data['candidate']
 
+            existing_vote = Vote.objects.select_for_update().filter(
+                voter=user, 
+                election=election
+            ).first()
+            
+            if existing_vote:
+                return Response({
+                    'status': 'error',
+                    'message': 'You have already voted in this election.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             vote = Vote.objects.create(
                 voter = user,
                 election = election,
                 candidate =  candidate,
                 ip_address = request.META.get('REMOTE_ADDR')
             )
+            cache.set(rate_limit_key, vote_count + 1, 3600)
 
             user.has_voted = True
             user.save(update_fields=['has_voted'])
@@ -628,7 +653,7 @@ class UserVoteHistoryView(APIView):
                 'candidate_name':vote.candidate.name,
                 'candidate_party':vote.candidate.party,
                 'timestamp':vote.timestamp,
-                'vote_hash':vote.vote_hash[:16] + '...'
+                'vote_hash':vote.vote_hash,
             })
         return Response({
             'status': 'success',
@@ -796,7 +821,7 @@ class VoteHistoryView(APIView):
         data = []
         for vote in votes:
             data.append({
-                'id': vote.id,
+                'id': vote.id,  # MAKE SURE THIS IS INCLUDED
                 'election_id': vote.election.id,
                 'election_title': vote.election.title,
                 'election_status': vote.election.status,
@@ -813,3 +838,39 @@ class VoteHistoryView(APIView):
             'count': len(data),
             'data': data
         })
+    
+class VerifyVoteView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, vote_hash):
+        from voting.models import Vote
+        
+        try:
+            vote = Vote.objects.get(vote_hash=vote_hash)
+            
+            # Check if the user owns this vote
+            if vote.voter != request.user:
+                return Response({
+                    'status': 'error',
+                    'message': 'You do not have permission to verify this vote'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Use the model's verify method
+            is_valid = vote.verify_hash()
+            
+            return Response({
+                'status': 'success',
+                'data': {
+                    'vote_hash': vote.vote_hash,
+                    'is_valid': is_valid,
+                    'election': vote.election.title,
+                    'candidate': vote.candidate.name,
+                    'timestamp': vote.timestamp,
+                    'verified_at': timezone.now().isoformat()
+                }
+            })
+        except Vote.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'message': 'Vote not found'
+            }, status=status.HTTP_404_NOT_FOUND)
