@@ -783,3 +783,33 @@ class AdminStatsView(APIView):
                 'recent_activity': recent_activity
             }
         })
+
+class VoteHistoryView(APIView):
+    """Get current user's vote history"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        from voting.models import Vote
+        
+        votes = Vote.objects.filter(voter=request.user).select_related('election', 'candidate').order_by('-timestamp')
+        
+        data = []
+        for vote in votes:
+            data.append({
+                'id': vote.id,
+                'election_id': vote.election.id,
+                'election_title': vote.election.title,
+                'election_status': vote.election.status,
+                'candidate_id': vote.candidate.id,
+                'candidate_name': vote.candidate.name,
+                'candidate_party': vote.candidate.party,
+                'candidate_photo': vote.candidate.photo.url if vote.candidate.photo else None,
+                'timestamp': vote.timestamp.isoformat(),
+                'vote_hash': vote.vote_hash,
+            })
+        
+        return Response({
+            'status': 'success',
+            'count': len(data),
+            'data': data
+        })

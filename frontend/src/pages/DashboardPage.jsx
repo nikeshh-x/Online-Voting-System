@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Vote, BarChart3, Users, Clock, CheckCircle } from 'lucide-react';
-import Layout from '../components/Layout';
-import { getDashboardStats, getActiveElections, getElections } from '../services/api';
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Vote, BarChart3, Users, Clock, CheckCircle } from "lucide-react";
+import Layout from "../components/Layout";
+import {
+  getDashboardStats,
+  getActiveElections,
+  getElections,
+} from "../services/api";
 
 function DashboardPage() {
   const navigate = useNavigate();
@@ -10,7 +14,7 @@ function DashboardPage() {
     totalElections: 0,
     activeElections: 0,
     totalVotes: 0,
-    turnoutRate: 0
+    turnoutRate: 0,
   });
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
@@ -23,14 +27,14 @@ function DashboardPage() {
     setLoading(true);
     try {
       // Get user from localStorage
-      const userStr = localStorage.getItem('user');
+      const userStr = localStorage.getItem("user");
       const userData = userStr ? JSON.parse(userStr) : null;
       setUser(userData);
 
       // Fetch all elections
       const electionsRes = await getElections();
       let allElections = [];
-      if (electionsRes && electionsRes.status === 'success') {
+      if (electionsRes && electionsRes.status === "success") {
         allElections = electionsRes.data || [];
       } else if (Array.isArray(electionsRes)) {
         allElections = electionsRes;
@@ -39,7 +43,7 @@ function DashboardPage() {
       // Fetch active elections
       const activeRes = await getActiveElections();
       let activeElections = [];
-      if (activeRes && activeRes.status === 'success') {
+      if (activeRes && activeRes.status === "success") {
         activeElections = activeRes.data || [];
       } else if (Array.isArray(activeRes)) {
         activeElections = activeRes;
@@ -48,7 +52,7 @@ function DashboardPage() {
       // Calculate stats
       const totalElections = allElections.length;
       const activeCount = activeElections.length;
-      
+
       // For now, total votes is 0 (will implement later)
       const totalVotes = 0;
       const turnoutRate = 0;
@@ -57,10 +61,10 @@ function DashboardPage() {
         totalElections,
         activeElections: activeCount,
         totalVotes,
-        turnoutRate
+        turnoutRate,
       });
     } catch (error) {
-      console.error('Dashboard error:', error);
+      console.error("Dashboard error:", error);
     } finally {
       setLoading(false);
     }
@@ -82,9 +86,11 @@ function DashboardPage() {
         {/* Welcome Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, {user?.full_name || user?.email || 'Voter'}!
+            Welcome back, {user?.full_name || user?.email || "Voter"}!
           </h1>
-          <p className="text-gray-500 mt-1">Here's what's happening with your voting dashboard</p>
+          <p className="text-gray-500 mt-1">
+            Here's what's happening with your voting dashboard
+          </p>
         </div>
 
         {/* Stats Cards */}
@@ -93,7 +99,9 @@ function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">Total Elections</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalElections}</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {stats.totalElections}
+                </p>
               </div>
               <div className="bg-blue-500 p-3 rounded-lg">
                 <Vote className="h-6 w-6 text-white" />
@@ -105,15 +113,17 @@ function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">Active Elections</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.activeElections}</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {stats.activeElections}
+                </p>
               </div>
               <div className="bg-green-500 p-3 rounded-lg">
                 <Clock className="h-6 w-6 text-white" />
               </div>
             </div>
             {stats.activeElections > 0 && (
-              <Link 
-                to="/elections?status=active" 
+              <Link
+                to="/elections?status=active"
                 className="text-xs text-primary-500 mt-2 inline-block hover:underline"
               >
                 View active elections →
@@ -125,7 +135,9 @@ function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">Total Votes Cast</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalVotes}</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {stats.totalVotes}
+                </p>
               </div>
               <div className="bg-purple-500 p-3 rounded-lg">
                 <BarChart3 className="h-6 w-6 text-white" />
@@ -137,7 +149,9 @@ function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">Voter Turnout</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.turnoutRate}%</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {stats.turnoutRate}%
+                </p>
               </div>
               <div className="bg-orange-500 p-3 rounded-lg">
                 <Users className="h-6 w-6 text-white" />
@@ -154,8 +168,12 @@ function DashboardPage() {
                 <CheckCircle className="h-5 w-5 text-yellow-600" />
               </div>
               <div>
-                <p className="font-medium text-yellow-800">Email Not Verified</p>
-                <p className="text-sm text-yellow-700">Please check your email to verify your account.</p>
+                <p className="font-medium text-yellow-800">
+                  Email Not Verified
+                </p>
+                <p className="text-sm text-yellow-700">
+                  Please check your email to verify your account.
+                </p>
               </div>
               <Link
                 to="/resend-verification"
@@ -170,7 +188,9 @@ function DashboardPage() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Quick Actions
+            </h3>
             <div className="space-y-3">
               <Link
                 to="/elections"
@@ -189,6 +209,16 @@ function DashboardPage() {
                 <span className="flex items-center gap-2">
                   <Users size={18} />
                   Update Profile
+                </span>
+                <span>→</span>
+              </Link>
+              <Link
+                to="/vote-history"
+                className="flex items-center justify-between w-full border border-gray-200 text-gray-700 p-3 rounded-lg hover:bg-gray-50 transition"
+              >
+                <span className="flex items-center gap-2">
+                  <Clock size={18} />
+                  View Vote History
                 </span>
                 <span>→</span>
               </Link>
@@ -224,8 +254,12 @@ function DashboardPage() {
         {stats.activeElections === 0 && (
           <div className="mt-8 bg-white rounded-xl shadow-sm p-8 text-center border border-gray-100">
             <Vote className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Elections</h3>
-            <p className="text-gray-500">Check back later for upcoming elections.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No Active Elections
+            </h3>
+            <p className="text-gray-500">
+              Check back later for upcoming elections.
+            </p>
           </div>
         )}
       </div>

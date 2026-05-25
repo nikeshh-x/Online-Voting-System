@@ -14,6 +14,7 @@ import ElectionDetailPage from "./pages/ElectionDetailPage";
 import ResultsPage from "./pages/ResultsPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import ResultsListPage from "./pages/ResultsListPage";
+import VoteHistoryPage from './pages/VoteHistoryPage';
 
 function App() {
   return (
@@ -108,6 +109,15 @@ function App() {
           element={
             <PrivateRoute>
               <AdminDashboardPage />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/vote-history"
+          element={
+            <PrivateRoute>
+              <VoteHistoryPage />
             </PrivateRoute>
           }
         />

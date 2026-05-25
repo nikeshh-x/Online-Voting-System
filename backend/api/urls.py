@@ -25,6 +25,7 @@ from .views import (
     UserVoteHistoryView,
     ElectionResultsView,
     AdminStatsView,
+    VoteHistoryView,
 )
 
 urlpatterns = [
@@ -66,5 +67,7 @@ urlpatterns = [
     # Result URLs 
     path('elections/<int:election_id>/results/', ElectionResultsView.as_view(), name='election-results'),
     
+    path('vote/history/', VoteHistoryView.as_view(), name='vote-history'),
+
     path('admin/stats/', AdminStatsView.as_view(), name='admin-stats'),
 ]
