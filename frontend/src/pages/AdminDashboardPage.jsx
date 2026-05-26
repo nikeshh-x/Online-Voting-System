@@ -1,51 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   Users, UserCheck, UserX, Calendar, Vote, BarChart3, 
-  Activity, TrendingUp, CheckCircle, XCircle, Clock, 
-  Award, Eye, EyeOff, RefreshCw
-} from 'lucide-react';
-import Layout from '../components/Layout';
-import { getAdminStats } from '../services/api';
+  Activity, TrendingUp, ExternalLink, RefreshCw
+} from "lucide-react";
+import Layout from "../components/Layout";
+import api from "../services/api";
 
 function AdminDashboardPage() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showRecentActivity, setShowRecentActivity] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const isAdmin = localStorage.getItem('is_admin') === 'true';
-    const adminToken = localStorage.getItem('admin_access_token');
-  
+    // Check if admin is logged in
+    const isAdmin = localStorage.getItem("is_admin") === "true";
+    const adminToken = localStorage.getItem("admin_access_token");
+    
     if (!isAdmin || !adminToken) {
-    navigate('/admin-login');
-    return;
-  }
-
+      navigate("/admin-login");
+      return;
+    }
+    
     fetchStats();
   }, []);
 
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const response = await getAdminStats();
-      if (response.status === 'success') {
-        setStats(response.data);
+      const token = localStorage.getItem("admin_access_token");
+      const response = await api.get("/admin/stats/", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.status === "success") {
+        setStats(response.data.data);
       } else {
-        setError(response.message || 'Failed to load stats');
+        setError(response.data.message || "Failed to load stats");
       }
     } catch (err) {
-      console.error('Error fetching stats:', err);
-      setError('Could not load admin dashboard');
+      console.error("Error fetching stats:", err);
+      if (err.response?.status === 403) {
+        navigate("/admin-login");
+      } else {
+        setError("Could not load admin dashboard");
+      }
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString();
   };
 
   if (loading) {
@@ -164,96 +166,78 @@ function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Quick Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm opacity-90">Active Elections</p>
-                <p className="text-2xl font-bold">{stats?.elections?.active || 0}</p>
-              </div>
-              <Activity className="h-8 w-8 opacity-80" />
+        {/* Quick Links */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Link 
+            to="/admin/elections/election/"
+            className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition flex items-center justify-between"
+          >
+            <div>
+              <h3 className="font-medium text-gray-900">Manage Elections</h3>
+              <p className="text-sm text-gray-500">Create, edit, or close elections</p>
             </div>
-          </div>
+            <ExternalLink size={18} className="text-gray-400" />
+          </Link>
           
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm opacity-90">Registered Voters</p>
-                <p className="text-2xl font-bold">{stats?.citizens?.registered || 0}</p>
-              </div>
-              <UserCheck className="h-8 w-8 opacity-80" />
+          <Link 
+            to="/admin/elections/candidate/"
+            className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition flex items-center justify-between"
+          >
+            <div>
+              <h3 className="font-medium text-gray-900">Manage Candidates</h3>
+              <p className="text-sm text-gray-500">Add or edit candidates</p>
             </div>
-          </div>
+            <ExternalLink size={18} className="text-gray-400" />
+          </Link>
           
-          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-4 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm opacity-90">Total Candidates</p>
-                <p className="text-2xl font-bold">0</p>
-              </div>
-              <Award className="h-8 w-8 opacity-80" />
+          <Link 
+            to="/admin/accounts/citizen/"
+            className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition flex items-center justify-between"
+          >
+            <div>
+              <h3 className="font-medium text-gray-900">Manage Citizens</h3>
+              <p className="text-sm text-gray-500">View and manage citizen data</p>
             </div>
-          </div>
-          
-          <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-4 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm opacity-90">Votes Today</p>
-                <p className="text-2xl font-bold">0</p>
-              </div>
-              <TrendingUp className="h-8 w-8 opacity-80" />
-            </div>
-          </div>
+            <ExternalLink size={18} className="text-gray-400" />
+          </Link>
         </div>
 
         {/* Recent Activity */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
-              <p className="text-sm text-gray-500">Latest votes and user actions</p>
-            </div>
-            <button 
-              onClick={() => setShowRecentActivity(!showRecentActivity)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              {showRecentActivity ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+            <p className="text-sm text-gray-500">Latest votes and user actions</p>
           </div>
           
-          {showRecentActivity && (
-            <div className="divide-y divide-gray-100">
-              {stats?.recent_activity && stats.recent_activity.length > 0 ? (
-                stats.recent_activity.map((activity, index) => (
-                  <div key={index} className="p-4 hover:bg-gray-50 transition">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <Vote className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">
-                          Vote cast by {activity.voter_email}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Voted for {activity.candidate_name} in {activity.election_title}
-                        </p>
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {formatDate(activity.timestamp)}
-                      </div>
+          <div className="divide-y divide-gray-100">
+            {stats?.recent_activity && stats.recent_activity.length > 0 ? (
+              stats.recent_activity.map((activity, index) => (
+                <div key={index} className="p-4 hover:bg-gray-50 transition">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <Vote className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">
+                        Vote cast by {activity.voter_email}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Voted for {activity.candidate_name} in {activity.election_title}
+                      </p>
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {new Date(activity.timestamp).toLocaleString()}
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="p-8 text-center">
-                  <Activity className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">No recent activity</p>
-                  <p className="text-sm text-gray-400">Votes will appear here once cast</p>
                 </div>
-              )}
-            </div>
-          )}
+              ))
+            ) : (
+              <div className="p-8 text-center">
+                <Activity className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No recent activity</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Layout>
