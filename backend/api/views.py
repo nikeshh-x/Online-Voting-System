@@ -684,46 +684,125 @@ class ElectionResultsView(APIView):
                 'message': 'Election not found'
             }, status=status.HTTP_404_NOT_FOUND)
         
+        # Update status
+        election.update_status()
+        
+        # Get votes
         votes = Vote.objects.filter(election=election)
         total_votes = votes.count()
         
+        # Calculate votes per candidate
         candidate_votes = {}
         for vote in votes:
             candidate_id = vote.candidate.id
             if candidate_id not in candidate_votes:
+                # Get photo URL safely
+                photo_url = None
+                if vote.candidate.photo:
+                    try:
+                        photo_url = request.build_absolute_uri(vote.candidate.photo.url)
+                    except:
+                        photo_url = None
+                
                 candidate_votes[candidate_id] = {
-                    'name': vote.candidate.name,
-                    'party': vote.candidate.party or '',
+                    'id': candidate_id,
+                    'name': str(vote.candidate.name),
+                    'party': str(vote.candidate.party) if vote.candidate.party else '',
+                    'symbol': str(vote.candidate.symbol) if vote.candidate.symbol else '',
+                    'photo': photo_url,
                     'votes': 0
                 }
             candidate_votes[candidate_id]['votes'] += 1
         
-        for candidate_id in candidate_votes:
-            if total_votes > 0:
-                candidate_votes[candidate_id]['percentage'] = round(
-                    (candidate_votes[candidate_id]['votes'] / total_votes) * 100, 2
-                )
-            else:
-                candidate_votes[candidate_id]['percentage'] = 0
+        all_candidates = election.candidates.all()
         
-        results = list(candidate_votes.values())
+        # Initialize vote counts for all candidates
+        candidate_votes = {}
+        for candidate in all_candidates:
+            # Get photo URL safely
+            photo_url = None
+            if candidate.photo:
+                try:
+                    photo_url = request.build_absolute_uri(candidate.photo.url)
+                except:
+                    photo_url = None
+            
+            candidate_votes[candidate.id] = {
+                'id': candidate.id,
+                'name': str(candidate.name),
+                'party': str(candidate.party) if candidate.party else '',
+                'symbol': str(candidate.symbol) if candidate.symbol else '',
+                'photo': photo_url,
+                'votes': 0
+            }
+        
+        # Add actual votes
+        for vote in votes:
+            candidate_id = vote.candidate.id
+            if candidate_id in candidate_votes:
+                candidate_votes[candidate_id]['votes'] += 1
+        
+        # Calculate percentages and prepare results
+        results = []
+        chart_labels = []
+        chart_data = []
+        chart_colors = ['#DC143C', '#FF6B6B', '#FFB347', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD']
+        
+        for candidate_id, data in candidate_votes.items():
+            percentage = round((data['votes'] / total_votes) * 100, 2) if total_votes > 0 else 0
+            results.append({
+                'name': data['name'],
+                'party': data['party'],
+                'symbol': data['symbol'],
+                'photo': data['photo'],
+                'votes': data['votes'],
+                'percentage': percentage
+            })
+            chart_labels.append(data['name'])
+            chart_data.append(data['votes'])
+        
+        # Sort by votes (descending)
         results.sort(key=lambda x: x['votes'], reverse=True)
         
+        # Calculate percentages and prepare results
+        results = []
+        chart_labels = []
+        chart_data = []
+        chart_colors = ['#DC143C', '#FF6B6B', '#FFB347', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD']
+        
+        for candidate_id, data in candidate_votes.items():
+            percentage = round((data['votes'] / total_votes) * 100, 2) if total_votes > 0 else 0
+            results.append({
+                'name': data['name'],
+                'party': data['party'],
+                'symbol': data['symbol'],
+                'photo': data['photo'],
+                'votes': data['votes'],
+                'percentage': percentage
+            })
+            chart_labels.append(data['name'])
+            chart_data.append(data['votes'])
+        
+        # Sort by votes (descending)
+        results.sort(key=lambda x: x['votes'], reverse=True)
+        
+        # Determine winner
         winner = results[0] if results else None
         is_tie = False
         if winner and len(results) > 1:
             is_tie = winner['votes'] == results[1]['votes']
         
-        # Calculate turnout (based on total votes, not registered voters for demo)
-        turnout_percentage = round((total_votes / 100) * 100, 2) if total_votes > 0 else 0
+        # Calculate voter turnout
+        total_eligible_voters = User.objects.filter(is_email_verified=True).count()
+        turnout_percentage = round((total_votes / total_eligible_voters) * 100, 2) if total_eligible_voters > 0 else 0
         
         return Response({
             'status': 'success',
             'data': {
                 'election': {
                     'id': election.id,
-                    'title': election.title,
-                    'description': election.description or '',
+                    'title': str(election.title),
+                    'description': str(election.description) if election.description else '',
                     'status': election.status,
                     'status_display': election.get_status_display(),
                     'start_datetime': election.start_datetime.isoformat() if election.start_datetime else None,
@@ -733,7 +812,16 @@ class ElectionResultsView(APIView):
                 'turnout_percentage': turnout_percentage,
                 'results': results,
                 'winner': winner,
-                'is_tie': is_tie
+                'is_tie': is_tie,
+                'chart_data': {
+                    'labels': chart_labels,
+                    'datasets': [{
+                        'label': 'Votes',
+                        'data': chart_data,
+                        'backgroundColor': chart_colors[:len(chart_labels)],
+                        'borderRadius': 8,
+                    }]
+                }
             }
         })
 
