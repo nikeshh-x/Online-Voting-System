@@ -29,6 +29,7 @@ from .views import (
     VerifyVoteView,
     AdminAuditLogView,
     AdminLoginView,
+    ElectionCountdownView,
 )
 
 urlpatterns = [
@@ -57,6 +58,9 @@ urlpatterns = [
     path('elections/active/', ActiveElectionsView.as_view(), name='active-elections'),
     path('elections/upcoming/', UpcomingElectionsView.as_view(), name='upcoming-elections'),
     path('elections/completed/', CompletedElectionsView.as_view(), name='completed-elections'),
+
+    # Election COuntdown
+    path('elections/<int:election_id>/countdown/', ElectionCountdownView.as_view(), name='election-countdown'),
     
     # Candidate endpoints
     path('elections/<int:election_id>/candidates/', CandidateListView.as_view(), name='candidate-list'),
@@ -78,6 +82,5 @@ urlpatterns = [
     # Admin Login
     path('admin/login/', AdminLoginView.as_view(), name='admin-login'),
     
-
     path('admin/stats/', AdminStatsView.as_view(), name='admin-stats'),
 ]

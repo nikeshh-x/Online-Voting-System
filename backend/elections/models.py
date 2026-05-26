@@ -45,6 +45,31 @@ class Election(models.Model):
         verbose_name = 'Election'
         verbose_name_plural = 'Elections'
         ordering = ['-created_at']
+    
+    def update_status(self):
+        """Update status based on current date and time"""
+        now = timezone.now()
+        
+        # Don't change cancelled elections
+        if self.status == 'cancelled':
+            return
+        
+        # Determine new status based on dates
+        if now < self.start_datetime:
+            new_status = 'upcoming'
+        elif self.start_datetime <= now <= self.end_datetime:
+            new_status = 'active'
+        elif now > self.end_datetime:
+            new_status = 'closed'
+        else:
+            new_status = self.status
+        
+        # Only update if changed
+        if self.status != new_status:
+            self.status = new_status
+            self.save(update_fields=['status'])
+            return True
+        return False
 
 class Candidate(models.Model):
     election = models.ForeignKey(Election, on_delete=models.CASCADE ,related_name='candidates')

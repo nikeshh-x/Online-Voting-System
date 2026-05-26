@@ -51,7 +51,6 @@ class CitizenshipVerificationSerializer(serializers.Serializer):
         attrs['citizen'] = citizen
         return attrs
 
-
 class CitizenSerializer(serializers.ModelSerializer):
     class Meta:
         model = Citizen
@@ -59,7 +58,6 @@ class CitizenSerializer(serializers.ModelSerializer):
             'id', 'citizenship_number', 'full_name', 'date_of_birth','gender', 'district', 'municipality', 'ward_number','father_name', 'mother_name', 'is_eligible', 'is_registered' 
         ]
         read_only_fields = ['is_eligible', 'is_registered', 'created_at', 'updated_at']
-
 
 class RegistrationSerializer(serializers.Serializer):
     """Serializer for user registration"""
@@ -168,7 +166,8 @@ class ElectionListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Election
-        fields = ['id','title','description','status_display', 'start_datetime', 'end_datetime', 'candidates_count','created_at']
+        fields = ['id', 'title', 'description', 'status', 'status_display',  # Added 'status' here
+                  'start_datetime', 'end_datetime', 'candidates_count', 'created_at']
     
     def get_candidates_count(self, obj):
         return obj.candidates.count()

@@ -414,13 +414,24 @@ class IsAdminUser(permissions.BasePermission):
         return request.user and request.user.is_authenticated and request.user.is_admin
     
 class ElectionListView(generics.ListCreateAPIView):
+    
     def get_queryset(self):
         queryset = Election.objects.all()
+        
+        # Update status for all elections
+        for election in queryset:
+            election.update_status()
+        
+        # Refresh queryset to get updated statuses
+        queryset = Election.objects.all()
+        
+        # Filter by status
         status_filter = self.request.query_params.get('status')
         if status_filter:
             queryset = queryset.filter(status=status_filter)
+        
         return queryset.order_by('-created_at')
-
+    
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return ElectionCreateUpdateSerializer
@@ -791,6 +802,66 @@ class VerifyVoteView(APIView):
                 'status': 'error',
                 'message': 'Vote not found'
             }, status=status.HTTP_404_NOT_FOUND)
+
+# Results Views
+class ElectionCountdownView(APIView):
+    """Get countdown information for an election"""
+    permission_classes = [AllowAny]
+    
+    def get(self, request, election_id):
+        from elections.models import Election
+        from django.utils import timezone
+        
+        try:
+            election = Election.objects.get(id=election_id)
+        except Election.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'message': 'Election not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        now = timezone.now()
+        
+        if election.status == 'upcoming':
+            # Time until start
+            remaining = election.start_datetime - now
+            status_type = 'upcoming'
+            message = "Election starts in"
+        elif election.status == 'active':
+            # Time until end
+            remaining = election.end_datetime - now
+            status_type = 'active'
+            message = "Election ends in"
+        else:
+            # Election closed or completed
+            return Response({
+                'status': 'success',
+                'data': {
+                    'status': election.status,
+                    'message': 'Election has ended',
+                    'is_active': False
+                }
+            })
+        
+        # Calculate days, hours, minutes, seconds
+        days = remaining.days
+        hours = remaining.seconds // 3600
+        minutes = (remaining.seconds % 3600) // 60
+        seconds = remaining.seconds % 60
+        
+        return Response({
+            'status': 'success',
+            'data': {
+                'status': status_type,
+                'message': message,
+                'days': days,
+                'hours': hours,
+                'minutes': minutes,
+                'seconds': seconds,
+                'total_seconds': max(0, remaining.total_seconds()),
+                'is_active': status_type == 'active'
+            }
+        })
         
 # Admin Views
 
