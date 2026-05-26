@@ -16,6 +16,7 @@ import ResultsListPage from "./pages/ResultsListPage";
 import VoteHistoryPage from "./pages/VoteHistoryPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AuditLogPage from './pages/AuditLogPage';
 
 function App() {
   return (
@@ -55,6 +56,7 @@ function App() {
           }
         />
         <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+
         {/* Protected Routes */}
         <Route
           path="/dashboard"
@@ -120,6 +122,11 @@ function App() {
             </PrivateRoute>
           }
         />
+        <Route path="/admin/audit-logs" element={
+  <PrivateRoute requireAdmin={true}>
+    <AuditLogPage />
+  </PrivateRoute>
+} />
         // Admin routes
         <Route path="/admin-login" element={<AdminLoginPage />} />
         <Route
