@@ -35,3 +35,18 @@
     color: var(--color-text);
   }
 }
+
+@media print {
+  nav, .sidebar, button, .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+    padding: 20px;
+  }
+  .bg-white, .rounded-xl, .shadow-sm {
+    background: white !important;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+}

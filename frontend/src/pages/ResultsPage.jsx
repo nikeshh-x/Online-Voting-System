@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Trophy, Users, Vote, Award, Calendar, Clock } from 'lucide-react';
+import { Trophy, Users, Vote, Award, Calendar, Clock, Download, Printer } from 'lucide-react';
 import Layout from '../components/Layout';
 import BarChart from '../components/BarChart';
 import PieChart from '../components/PieChart';
+import TurnoutGauge from '../components/TurnoutGauge';
 import { getElectionResults } from '../services/api';
 
 function ResultsPage() {
@@ -11,9 +12,11 @@ function ResultsPage() {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [totalEligibleVoters, setTotalEligibleVoters] = useState(0);
 
   useEffect(() => {
     fetchResults();
+    fetchTotalEligibleVoters();
     // Auto-refresh every 30 seconds for active elections
     const interval = setInterval(() => {
       if (results?.election?.status === 'active') {
@@ -26,6 +29,7 @@ function ResultsPage() {
   const fetchResults = async () => {
     try {
       const response = await getElectionResults(id);
+      console.log('API Response:', response);
       if (response.status === 'success') {
         setResults(response.data);
       } else {
@@ -37,6 +41,48 @@ function ResultsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchTotalEligibleVoters = async () => {
+    try {
+      const response = await fetch('/api/admin/stats/', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        setTotalEligibleVoters(data.data.users?.verified || 0);
+      }
+    } catch (err) {
+      console.error('Error fetching eligible voters:', err);
+      setTotalEligibleVoters(results?.total_votes || 0);
+    }
+  };
+
+  const exportToCSV = () => {
+    if (!results || !results.results) return;
+    
+    const headers = ['Candidate', 'Party', 'Votes', 'Percentage'];
+    const rows = results.results.map(c => [
+      c.name,
+      c.party || 'Independent',
+      c.votes,
+      `${c.percentage}%`
+    ]);
+    
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${results.election.title}_results.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const formatDate = (dateString) => {
@@ -57,7 +103,7 @@ function ResultsPage() {
     return (
       <Layout>
         <div className="flex justify-center items-center h-64">
-          <div className="text-primary-500">Loading results...</div>
+          <div className="text-primary-500 text-xl">Loading results...</div>
         </div>
       </Layout>
     );
@@ -76,6 +122,7 @@ function ResultsPage() {
 
   const isElectionClosed = results.election.status === 'closed';
   const hasVotes = results.total_votes > 0;
+  const totalCandidates = results.results?.length || 0;
 
   // Prepare chart data from API
   const barChartData = results.chart_data || { labels: [], datasets: [] };
@@ -90,9 +137,28 @@ function ResultsPage() {
   return (
     <Layout>
       <div className="max-w-6xl mx-auto p-6">
-        <Link to="/elections" className="text-primary-500 hover:underline mb-4 inline-block">
-          ← Back to Elections
-        </Link>
+        {/* Header with Actions */}
+        <div className="flex justify-between items-center mb-6">
+          <Link to="/elections" className="text-primary-500 hover:underline">
+            ← Back to Elections
+          </Link>
+          <div className="flex gap-2 no-print">
+            <button
+              onClick={exportToCSV}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm"
+            >
+              <Download size={16} />
+              Export CSV
+            </button>
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm"
+            >
+              <Printer size={16} />
+              Print
+            </button>
+          </div>
+        </div>
 
         {/* Election Header */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
@@ -126,35 +192,51 @@ function ResultsPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Total Votes Cast</p>
-                <p className="text-2xl font-bold text-gray-900">{results.total_votes}</p>
-              </div>
-              <Vote className="h-8 w-8 text-primary-500" />
-            </div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Voter Turnout</p>
-                <p className="text-2xl font-bold text-gray-900">{results.turnout_percentage}%</p>
-              </div>
-              <Users className="h-8 w-8 text-blue-500" />
-            </div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Participating Candidates</p>
-                <p className="text-2xl font-bold text-gray-900">{results.results?.length || 0}</p>
-              </div>
-              <Award className="h-8 w-8 text-green-500" />
-            </div>
-          </div>
-        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  {/* Total Votes Card */}
+  <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-gray-500 text-sm">Total Votes</p>
+        <p className="text-2xl font-bold text-gray-900">{results.total_votes}</p>
+      </div>
+      <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+        <Vote className="h-5 w-5 text-primary-500" />
+      </div>
+    </div>
+  </div>
+  
+  {/* Candidates Card */}
+  <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-gray-500 text-sm">Candidates</p>
+        <p className="text-2xl font-bold text-gray-900">{totalCandidates}</p>
+      </div>
+      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+        <Award className="h-5 w-5 text-green-500" />
+      </div>
+    </div>
+  </div>
+  
+  {/* Turnout Percentage Card */}
+  <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-gray-500 text-sm">Turnout</p>
+        <p className="text-2xl font-bold text-gray-900">{results.turnout_percentage}%</p>
+      </div>
+      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+        <Users className="h-5 w-5 text-blue-500" />
+      </div>
+    </div>
+  </div>
+  
+  {/* Turnout Gauge Card - spans full width on mobile */}
+  <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 sm:col-span-2 lg:col-span-1">
+    <TurnoutGauge percentage={results.turnout_percentage} size={70} />
+  </div>
+</div>
 
         {/* Winner Announcement */}
         {isElectionClosed && results.winner && (
@@ -167,13 +249,16 @@ function ResultsPage() {
                 <p className="text-sm opacity-90">
                   {results.winner.party || 'Independent'} • {results.winner.votes} votes ({results.winner.percentage}%)
                 </p>
+                {results.is_tie && (
+                  <p className="text-sm mt-2 font-semibold">This election ended in a tie!</p>
+                )}
               </div>
             </div>
           </div>
         )}
 
         {/* Charts */}
-        {hasVotes && (
+        {hasVotes && totalCandidates > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Vote Distribution (Bar Chart)</h3>
@@ -190,8 +275,8 @@ function ResultsPage() {
           </div>
         )}
 
-        {/* Results Table */}
-        {results.results && results.results.length > 0 && (
+        {/* Detailed Results Table */}
+        {totalCandidates > 0 && (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
             <div className="px-6 py-4 border-b border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900">Detailed Results</h3>
@@ -200,10 +285,10 @@ function ResultsPage() {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Candidate</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Party</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Votes</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Percentage</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Party</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Votes</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -211,6 +296,13 @@ function ResultsPage() {
                     <tr key={index} className={index === 0 && !results.is_tie && isElectionClosed ? 'bg-yellow-50' : ''}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
+                          {candidate.photo ? (
+                            <img src={candidate.photo} alt={candidate.name} className="w-8 h-8 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                              <span className="text-primary-500 font-bold text-sm">{candidate.name?.charAt(0) || '?'}</span>
+                            </div>
+                          )}
                           <span className="font-medium text-gray-900">{candidate.name}</span>
                           {index === 0 && !results.is_tie && isElectionClosed && (
                             <span className="text-yellow-500 text-sm">🏆 Winner</span>
@@ -235,10 +327,12 @@ function ResultsPage() {
           </div>
         )}
 
+        {/* No Votes Message */}
         {!hasVotes && (
           <div className="text-center py-12 bg-white rounded-xl shadow-sm">
             <Vote className="h-12 w-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">No votes have been cast yet.</p>
+            <p className="text-sm text-gray-400 mt-1">Results will appear here once voting begins.</p>
           </div>
         )}
       </div>
