@@ -21,9 +21,7 @@ function ElectionsPage() {
         params.status = filter;
       }
       const response = await getElections(params);
-      console.log('API Response:', response);
       
-      // The API returns { status: "success", data: [...] }
       if (response && response.status === 'success') {
         setElections(response.data || []);
       } else if (Array.isArray(response)) {
@@ -118,16 +116,29 @@ function ElectionsPage() {
               <Link
                 key={election.id}
                 to={`/elections/${election.id}`}
-                className="bg-white rounded-xl shadow-sm hover:shadow-md transition border border-gray-100 overflow-hidden"
+                className="block bg-white rounded-xl shadow-sm hover:shadow-md transition border border-gray-100 overflow-hidden"
               >
                 <div className="p-6">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900">{election.title}</h3>
-                    <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadge(election.status)}`}>
-                      {election.status_display || election.status}
-                    </span>
+                  {/* Title and Badges */}
+                  <div className="flex justify-between items-start gap-2 mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900 flex-1">
+                      {election.title}
+                    </h3>
+                    <div className="flex gap-2 shrink-0">
+                      {election.status === 'active' && (
+                        <span className="flex items-center gap-1 bg-red-500 text-white px-2 py-1 rounded-full text-xs">
+                          <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                          LIVE
+                        </span>
+                      )}
+                      <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadge(election.status)}`}>
+                        {election.status_display || election.status}
+                      </span>
+                    </div>
                   </div>
+                  
                   <p className="text-gray-600 text-sm mb-4 line-clamp-2">{election.description}</p>
+                  
                   <div className="space-y-2 text-sm text-gray-500">
                     <div className="flex items-center gap-2">
                       <Calendar size={14} />
