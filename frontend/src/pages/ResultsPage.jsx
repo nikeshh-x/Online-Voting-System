@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Trophy, Users, Vote, Award, Calendar, Clock, Download, Printer } from 'lucide-react';
+import { Trophy, Users, Vote, Award, Calendar, Clock, Download, Printer, TrendingUp } from 'lucide-react';
 import Layout from '../components/Layout';
 import BarChart from '../components/BarChart';
 import PieChart from '../components/PieChart';
@@ -12,26 +12,29 @@ function ResultsPage() {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [totalEligibleVoters, setTotalEligibleVoters] = useState(0);
 
   useEffect(() => {
     fetchResults();
     fetchTotalEligibleVoters();
-    // Auto-refresh every 30 seconds for active elections
+    
+    // Auto-refresh every 10 seconds for active elections
     const interval = setInterval(() => {
       if (results?.election?.status === 'active') {
         fetchResults();
       }
-    }, 30000);
+    }, 10000);
+    
     return () => clearInterval(interval);
   }, [id]);
 
   const fetchResults = async () => {
     try {
       const response = await getElectionResults(id);
-      console.log('API Response:', response);
       if (response.status === 'success') {
         setResults(response.data);
+        setLastUpdated(new Date());
       } else {
         setError('Failed to load results');
       }
@@ -124,7 +127,7 @@ function ResultsPage() {
   const hasVotes = results.total_votes > 0;
   const totalCandidates = results.results?.length || 0;
 
-  // Prepare chart data from API
+  // Prepare chart data
   const barChartData = results.chart_data || { labels: [], datasets: [] };
   const pieChartData = {
     labels: results.results?.map(c => c.name) || [],
@@ -160,6 +163,22 @@ function ResultsPage() {
           </div>
         </div>
 
+        {/* Live Indicator */}
+        {results.election.status === 'active' && (
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-1 bg-red-500 text-white px-3 py-1 rounded-full text-xs">
+              <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+              LIVE
+            </div>
+            <span className="text-xs text-gray-500">Auto-refreshing every 10 seconds</span>
+            {lastUpdated && (
+              <span className="text-xs text-gray-400">
+                Last updated: {lastUpdated.toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Election Header */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
           <div className="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
@@ -168,12 +187,6 @@ function ResultsPage() {
               <span className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusBadge(results.election.status)}`}>
                 {results.election.status_display}
               </span>
-              {results.election.status === 'active' && (
-                <span className="flex items-center gap-1 bg-red-500 text-white px-2 py-1 rounded-full text-xs">
-                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                  LIVE
-                </span>
-              )}
             </div>
           </div>
           <div className="p-6">
@@ -193,50 +206,46 @@ function ResultsPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-  {/* Total Votes Card */}
-  <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-gray-500 text-sm">Total Votes</p>
-        <p className="text-2xl font-bold text-gray-900">{results.total_votes}</p>
-      </div>
-      <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-        <Vote className="h-5 w-5 text-primary-500" />
-      </div>
-    </div>
-  </div>
-  
-  {/* Candidates Card */}
-  <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-gray-500 text-sm">Candidates</p>
-        <p className="text-2xl font-bold text-gray-900">{totalCandidates}</p>
-      </div>
-      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-        <Award className="h-5 w-5 text-green-500" />
-      </div>
-    </div>
-  </div>
-  
-  {/* Turnout Percentage Card */}
-  <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-gray-500 text-sm">Turnout</p>
-        <p className="text-2xl font-bold text-gray-900">{results.turnout_percentage}%</p>
-      </div>
-      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-        <Users className="h-5 w-5 text-blue-500" />
-      </div>
-    </div>
-  </div>
-  
-  {/* Turnout Gauge Card - spans full width on mobile */}
-  <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 sm:col-span-2 lg:col-span-1">
-    <TurnoutGauge percentage={results.turnout_percentage} size={70} />
-  </div>
-</div>
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Total Votes</p>
+                <p className="text-2xl font-bold text-gray-900">{results.total_votes}</p>
+              </div>
+              <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                <Vote className="h-5 w-5 text-primary-500" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Candidates</p>
+                <p className="text-2xl font-bold text-gray-900">{totalCandidates}</p>
+              </div>
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <Award className="h-5 w-5 text-green-500" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Turnout</p>
+                <p className="text-2xl font-bold text-gray-900">{results.turnout_percentage}%</p>
+              </div>
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <Users className="h-5 w-5 text-blue-500" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-sm p-3 border border-gray-100 flex items-center justify-center">
+            <TurnoutGauge percentage={results.turnout_percentage} size={70} />
+          </div>
+        </div>
 
         {/* Winner Announcement */}
         {isElectionClosed && results.winner && (
@@ -250,7 +259,7 @@ function ResultsPage() {
                   {results.winner.party || 'Independent'} • {results.winner.votes} votes ({results.winner.percentage}%)
                 </p>
                 {results.is_tie && (
-                  <p className="text-sm mt-2 font-semibold">This election ended in a tie!</p>
+                  <p className="text-sm mt-2 font-semibold">⚠️ This election ended in a tie!</p>
                 )}
               </div>
             </div>

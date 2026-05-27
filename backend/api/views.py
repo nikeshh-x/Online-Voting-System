@@ -908,28 +908,37 @@ class ElectionCountdownView(APIView):
                 'message': 'Election not found'
             }, status=status.HTTP_404_NOT_FOUND)
         
+        # Update status first
+        election.update_status()
+        
         now = timezone.now()
         
         if election.status == 'upcoming':
-            # Time until start
             remaining = election.start_datetime - now
             status_type = 'upcoming'
             message = "Election starts in"
         elif election.status == 'active':
-            # Time until end
             remaining = election.end_datetime - now
             status_type = 'active'
             message = "Election ends in"
         else:
-            # Election closed or completed
             return Response({
                 'status': 'success',
                 'data': {
                     'status': election.status,
                     'message': 'Election has ended',
-                    'is_active': False
+                    'is_active': False,
+                    'days': 0,
+                    'hours': 0,
+                    'minutes': 0,
+                    'seconds': 0,
+                    'total_seconds': 0
                 }
             })
+        
+        # Ensure remaining is not negative
+        if remaining.total_seconds() < 0:
+            remaining = timedelta(seconds=0)
         
         # Calculate days, hours, minutes, seconds
         days = remaining.days

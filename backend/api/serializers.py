@@ -163,30 +163,39 @@ class ProfileUpdateSerializer(serializers.Serializer):
 class ElectionListSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     candidates_count = serializers.SerializerMethodField()
+    total_votes = serializers.SerializerMethodField()  
 
     class Meta:
         model = Election
-        fields = ['id', 'title', 'description', 'status', 'status_display',  # Added 'status' here
-                  'start_datetime', 'end_datetime', 'candidates_count', 'created_at']
+        fields = ['id', 'title', 'description', 'status', 'status_display',
+                  'start_datetime', 'end_datetime', 'candidates_count', 'total_votes', 'created_at'] 
     
     def get_candidates_count(self, obj):
         return obj.candidates.count()
+    
+    def get_total_votes(self, obj):
+        from voting.models import Vote
+        return Vote.objects.filter(election=obj).count()  
     
 class ElectionDetailSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     candidates = serializers.SerializerMethodField()
     created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    total_votes = serializers.SerializerMethodField()  
 
     class Meta:
         model = Election
-        fields = ['id','title', 'description', 'status', 'status_display',
-            'start_datetime', 'end_datetime', 'candidates', 'created_by_name','is_active', 'created_at', 'updated_at'
-        ]
+        fields = ['id', 'title', 'description', 'status', 'status_display',
+                  'start_datetime', 'end_datetime', 'candidates', 'created_by_name',
+                  'is_active', 'total_votes', 'created_at', 'updated_at'] 
     
     def get_candidates(self, obj):
         candidates = obj.candidates.all().order_by('display_order')
-        # Pass request context to serializer
         return CandidateListSerializer(candidates, many=True, context=self.context).data
+    
+    def get_total_votes(self, obj):
+        from voting.models import Vote
+        return Vote.objects.filter(election=obj).count() 
     
 class ElectionCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:

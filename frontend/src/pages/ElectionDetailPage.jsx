@@ -5,10 +5,10 @@ import {
   Clock,
   Users,
   CheckCircle,
-  AlertCircle,
   X,
   Copy,
   Check,
+  TrendingUp,
 } from "lucide-react";
 import Layout from "../components/Layout";
 import { getElectionDetail, checkUserVote, castVote } from "../services/api";
@@ -26,7 +26,9 @@ function ElectionDetailPage() {
   const [voteResult, setVoteResult] = useState(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [electionStatus, setElectionStatus] = useState(election?.status);
+  const [electionStatus, setElectionStatus] = useState(null);
+  const [liveVotes, setLiveVotes] = useState(0);
+  const [votesAnimating, setVotesAnimating] = useState(false);
 
   const userStr = localStorage.getItem("user");
   const user = userStr ? JSON.parse(userStr) : null;
@@ -36,10 +38,33 @@ function ElectionDetailPage() {
     checkVoteStatus();
   }, [id]);
 
+  useEffect(() => {
+    // Initial fetch
+    fetchElection();
+    checkVoteStatus();
+
+    let interval;
+    if (election?.status === "active") {
+      interval = setInterval(() => {
+        fetchElection();
+        checkVoteStatus(); 
+      }, 30000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [id, election?.status]);
+
   const fetchElection = async () => {
     try {
       const response = await getElectionDetail(id);
       setElection(response);
+      if (response.total_votes !== liveVotes) {
+        setVotesAnimating(true);
+        setTimeout(() => setVotesAnimating(false), 500);
+      }
+      setLiveVotes(response.total_votes || 0);
     } catch (error) {
       console.error("Error fetching election:", error);
       navigate("/elections");
@@ -78,6 +103,7 @@ function ElectionDetailPage() {
         setHasVoted(true);
         setShowConfirmModal(false);
         setShowReceiptModal(true);
+        fetchElection();
       }
     } catch (err) {
       console.error("Error casting vote:", err);
@@ -117,7 +143,6 @@ function ElectionDetailPage() {
 
   const handleStatusChange = (newStatus) => {
     setElectionStatus(newStatus);
-    // Refresh election data
     fetchElection();
     checkVoteStatus();
   };
@@ -168,20 +193,24 @@ function ElectionDetailPage() {
                 >
                   {election.status_display || election.status}
                 </span>
+                {election.status === "active" && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-1 bg-red-500 text-white px-2 py-0.5 rounded-full text-xs">
+                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                      LIVE
+                    </div>
+                    <span className="text-xs text-white opacity-75">
+                      Auto-refreshing
+                    </span>
+                  </div>
+                )}
               </div>
-              {election.status !== "closed" && (
-                <div className="mt-4">
-                  <CountdownTimer
-                    electionId={id}
-                    onStatusChange={handleStatusChange}
-                  />
-                </div>
-              )}
             </div>
           </div>
 
           <div className="p-6 space-y-4">
             <p className="text-gray-700">{election.description}</p>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
               <div className="flex items-center gap-3">
                 <Calendar className="h-5 w-5 text-gray-400" />
@@ -202,6 +231,29 @@ function ElectionDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* Live Vote Count */}
+            {election.status === "active" && (
+              <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                <TrendingUp size={16} className="text-green-500" />
+                <span className="text-sm text-gray-500">Total Votes:</span>
+                <span
+                  className={`font-bold text-primary-600 ${votesAnimating ? "scale-110 transition-transform" : ""}`}
+                >
+                  {liveVotes}
+                </span>
+              </div>
+            )}
+
+            {/* Countdown Timer */}
+            {election.status !== "closed" && (
+              <div className="pt-2">
+                <CountdownTimer
+                  electionId={id}
+                  onStatusChange={handleStatusChange}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -312,6 +364,18 @@ function ElectionDetailPage() {
               </button>
             </div>
           )}
+
+        {/* Results Link */}
+        {election.status === "closed" && (
+          <div className="mt-6 flex justify-center">
+            <Link
+              to={`/results/${id}`}
+              className="bg-primary-500 text-white px-6 py-2 rounded-lg hover:bg-primary-600 transition"
+            >
+              View Results
+            </Link>
+          </div>
+        )}
 
         {/* Confirmation Modal */}
         {showConfirmModal && selectedCandidate && (

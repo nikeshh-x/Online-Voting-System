@@ -1,24 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import api from '../services/api';
 
 function CountdownTimer({ electionId, onStatusChange }) {
   const [countdown, setCountdown] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showSeconds, setShowSeconds] = useState(false);
 
   useEffect(() => {
     fetchCountdown();
-    const interval = setInterval(fetchCountdown, 1000); // Update every second
+    
+    let interval;
+    if (showSeconds) {
+      interval = setInterval(fetchCountdown, 1000);
+    } else {
+      interval = setInterval(fetchCountdown, 60000);
+    }
+    
     return () => clearInterval(interval);
-  }, [electionId]);
+  }, [electionId, showSeconds]);
 
   const fetchCountdown = async () => {
     try {
       const response = await api.get(`/elections/${electionId}/countdown/`);
       if (response.data.status === 'success') {
-        setCountdown(response.data.data);
-        if (onStatusChange && response.data.data.status !== countdown?.status) {
-          onStatusChange(response.data.data.status);
+        const data = response.data.data;
+        
+        // Check if election has ended
+        if (data.status === 'closed' || (data.days === 0 && data.hours === 0 && data.minutes === 0 && data.seconds === 0 && data.total_seconds === 0)) {
+          if (onStatusChange) onStatusChange('closed');
+          setCountdown({ ...data, status: 'closed' });
+          setLoading(false);
+          return;
+        }
+        
+        setCountdown(data);
+        
+        // Check if less than 1 minute remaining
+        if (data.total_seconds < 60 && data.total_seconds > 0) {
+          setShowSeconds(true);
+        } else {
+          setShowSeconds(false);
+        }
+        
+        if (onStatusChange && data.status !== countdown?.status) {
+          onStatusChange(data.status);
         }
       }
     } catch (error) {
@@ -40,7 +66,8 @@ function CountdownTimer({ electionId, onStatusChange }) {
     return null;
   }
 
-  if (countdown.status === 'closed') {
+  // Election ended
+  if (countdown.status === 'closed' || (countdown.days === 0 && countdown.hours === 0 && countdown.minutes === 0 && countdown.seconds === 0)) {
     return (
       <div className="bg-gray-100 rounded-lg p-3 text-center">
         <div className="flex items-center justify-center gap-2 text-gray-600">
@@ -53,6 +80,13 @@ function CountdownTimer({ electionId, onStatusChange }) {
 
   const isActive = countdown.status === 'active';
   const isLive = isActive && countdown.total_seconds > 0;
+  const lessThanMinute = countdown.total_seconds < 60 && countdown.total_seconds > 0;
+
+  // Don't show negative values
+  const displayDays = Math.max(0, countdown.days);
+  const displayHours = Math.max(0, countdown.hours);
+  const displayMinutes = Math.max(0, countdown.minutes);
+  const displaySeconds = Math.max(0, countdown.seconds);
 
   return (
     <div className={`rounded-lg p-4 text-center ${isActive ? 'bg-gradient-to-r from-green-500 to-green-600 text-white' : 'bg-gradient-to-r from-primary-500 to-primary-600 text-white'}`}>
@@ -63,24 +97,34 @@ function CountdownTimer({ electionId, onStatusChange }) {
         </div>
       )}
       <p className="text-sm opacity-90 mb-2">{countdown.message}</p>
-      <div className="flex justify-center gap-4 text-center">
-        <div>
-          <div className="text-2xl font-bold">{countdown.days}</div>
-          <div className="text-xs opacity-75">Days</div>
+      
+      {lessThanMinute ? (
+        <div className="flex justify-center">
+          <div className="text-center">
+            <div className="text-3xl font-bold">{displaySeconds}</div>
+            <div className="text-xs opacity-75">Seconds</div>
+          </div>
         </div>
-        <div>
-          <div className="text-2xl font-bold">{countdown.hours}</div>
-          <div className="text-xs opacity-75">Hours</div>
+      ) : (
+        <div className="flex justify-center gap-6 text-center">
+          <div>
+            <div className="text-2xl font-bold">{displayDays}</div>
+            <div className="text-xs opacity-75">Days</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold">{displayHours}</div>
+            <div className="text-xs opacity-75">Hours</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold">{displayMinutes}</div>
+            <div className="text-xs opacity-75">Minutes</div>
+          </div>
         </div>
-        <div>
-          <div className="text-2xl font-bold">{countdown.minutes}</div>
-          <div className="text-xs opacity-75">Minutes</div>
-        </div>
-        <div>
-          <div className="text-2xl font-bold">{countdown.seconds}</div>
-          <div className="text-xs opacity-75">Seconds</div>
-        </div>
-      </div>
+      )}
+      
+      {lessThanMinute && displaySeconds > 0 && (
+        <p className="text-sm font-semibold mt-2 animate-pulse">Less than a minute remaining!</p>
+      )}
     </div>
   );
 }
