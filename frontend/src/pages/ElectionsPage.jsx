@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, Clock, Users, Plus } from 'lucide-react';
 import Layout from '../components/Layout';
+import StatusBadge from '../components/StatusBadge';
 import { getElections } from '../services/api';
 
 function ElectionsPage() {
@@ -18,16 +19,36 @@ function ElectionsPage() {
     try {
       let params = {};
       if (filter !== 'all') {
-        params.status = filter;
+        if (filter === 'ending-soon') {
+          // Handle ending soon separately
+          const response = await getElections({ status: 'active' });
+          let electionsData = [];
+          if (response && response.status === 'success') {
+            electionsData = response.data || [];
+          } else if (Array.isArray(response)) {
+            electionsData = response;
+          }
+          
+          const now = new Date();
+          const twentyFourHoursLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+          const endingSoon = electionsData.filter(e => 
+            new Date(e.end_datetime) <= twentyFourHoursLater &&
+            new Date(e.end_datetime) > now
+          );
+          setElections(endingSoon);
+          setLoading(false);
+          return;
+        } else {
+          params.status = filter;
+        }
       }
+      
       const response = await getElections(params);
       
       if (response && response.status === 'success') {
         setElections(response.data || []);
       } else if (Array.isArray(response)) {
         setElections(response);
-      } else if (response && response.data && Array.isArray(response.data)) {
-        setElections(response.data);
       } else {
         setElections([]);
       }
@@ -89,18 +110,18 @@ function ElectionsPage() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-gray-200">
-          {['all', 'active', 'upcoming', 'closed'].map((tab) => (
+        <div className="flex gap-2 mb-6 border-b border-gray-200 overflow-x-auto">
+          {['all', 'active', 'ending-soon', 'upcoming', 'closed'].map((tab) => (
             <button
               key={tab}
               onClick={() => setFilter(tab)}
-              className={`px-4 py-2 text-sm font-medium transition ${
+              className={`px-4 py-2 text-sm font-medium transition whitespace-nowrap ${
                 filter === tab
                   ? 'text-primary-500 border-b-2 border-primary-500'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'ending-soon' ? 'Ending Soon' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -113,48 +134,44 @@ function ElectionsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {elections.map((election) => (
-              <Link
-                key={election.id}
-                to={`/elections/${election.id}`}
-                className="block bg-white rounded-xl shadow-sm hover:shadow-md transition border border-gray-100 overflow-hidden"
-              >
-                <div className="p-6">
-                  {/* Title and Badges */}
-                  <div className="flex justify-between items-start gap-2 mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900 flex-1">
-                      {election.title}
-                    </h3>
-                    <div className="flex gap-2 shrink-0">
-                      {election.status === 'active' && (
-                        <span className="flex items-center gap-1 bg-red-500 text-white px-2 py-1 rounded-full text-xs">
-                          <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                          LIVE
-                        </span>
-                      )}
-                      <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadge(election.status)}`}>
-                        {election.status_display || election.status}
-                      </span>
+              <div key={election.id} className="relative">
+                {election.status === 'active' && (
+                  <div className="absolute top-2 right-2 z-10">
+                    <div className="flex items-center gap-1 bg-red-500 text-white px-2 py-0.5 rounded-full text-xs">
+                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                      LIVE
                     </div>
                   </div>
-                  
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{election.description}</p>
-                  
-                  <div className="space-y-2 text-sm text-gray-500">
-                    <div className="flex items-center gap-2">
-                      <Calendar size={14} />
-                      <span>Start: {formatDate(election.start_datetime)}</span>
+                )}
+                <Link
+                  to={`/elections/${election.id}`}
+                  className="block bg-white rounded-xl shadow-sm hover:shadow-md transition border border-gray-100 overflow-hidden"
+                >
+                  <div className="p-6">
+                    <div className="flex justify-between items-start gap-2 mb-3">
+                      <h3 className="text-lg font-semibold text-gray-900 flex-1">
+                        {election.title}
+                      </h3>
+                      <StatusBadge status={election.status} endDateTime={election.end_datetime} />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock size={14} />
-                      <span>End: {formatDate(election.end_datetime)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users size={14} />
-                      <span>{election.candidates_count || 0} Candidates</span>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{election.description}</p>
+                    <div className="space-y-2 text-sm text-gray-500">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={14} />
+                        <span>Start: {formatDate(election.start_datetime)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock size={14} />
+                        <span>End: {formatDate(election.end_datetime)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users size={14} />
+                        <span>{election.candidates_count || 0} Candidates</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </div>
             ))}
           </div>
         )}

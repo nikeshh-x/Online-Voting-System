@@ -9,6 +9,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import Layout from "../components/Layout";
+import StatusBadge from "../components/StatusBadge";
 import api from "../services/api";
 
 function VoteHistoryPage() {
@@ -43,31 +44,6 @@ function VoteHistoryPage() {
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString();
-  };
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "active":
-        return (
-          <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
-            Active
-          </span>
-        );
-      case "upcoming":
-        return (
-          <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">
-            Upcoming
-          </span>
-        );
-      case "closed":
-        return (
-          <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">
-            Closed
-          </span>
-        );
-      default:
-        return null;
-    }
   };
 
   const verifyVote = async (voteHash, voteId) => {
@@ -143,8 +119,8 @@ function VoteHistoryPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {votes.map((vote, index) => {
-              const uniqueId = vote.id !== undefined ? vote.id : index;
+            {votes.map((vote) => {
+              const uniqueId = vote.id;
               const isVerifying = verifyingIds[uniqueId];
               const result = verificationResults[uniqueId];
               
@@ -160,7 +136,7 @@ function VoteHistoryPage() {
                           <h3 className="text-lg font-semibold text-gray-900">
                             {vote.election_title}
                           </h3>
-                          {getStatusBadge(vote.election_status)}
+                          <StatusBadge status={vote.election_status} />
                         </div>
 
                         <div className="flex items-center gap-3 mb-3">
