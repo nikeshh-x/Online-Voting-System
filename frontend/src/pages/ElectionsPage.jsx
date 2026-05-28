@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Calendar, Clock, Users, Plus } from 'lucide-react';
 import Layout from '../components/Layout';
 import StatusBadge from '../components/StatusBadge';
+import { SkeletonCard } from '../components/Skeleton';
 import { getElections } from '../services/api';
 
 function ElectionsPage() {
@@ -20,7 +21,6 @@ function ElectionsPage() {
       let params = {};
       if (filter !== 'all') {
         if (filter === 'ending-soon') {
-          // Handle ending soon separately
           const response = await getElections({ status: 'active' });
           let electionsData = [];
           if (response && response.status === 'success') {
@@ -60,17 +60,6 @@ function ElectionsPage() {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const badges = {
-      active: 'bg-green-100 text-green-800',
-      upcoming: 'bg-yellow-100 text-yellow-800',
-      closed: 'bg-gray-100 text-gray-800',
-      draft: 'bg-blue-100 text-blue-800',
-      cancelled: 'bg-red-100 text-red-800',
-    };
-    return badges[status] || 'bg-gray-100 text-gray-800';
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString();
@@ -83,8 +72,24 @@ function ElectionsPage() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex justify-center py-12">
-          <div className="text-primary-500">Loading elections...</div>
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <div className="h-8 bg-gray-200 rounded w-32 mb-2 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-48 animate-pulse"></div>
+            </div>
+            {isAdmin && (
+              <div className="h-10 bg-gray-200 rounded-lg w-32 animate-pulse"></div>
+            )}
+          </div>
+          <div className="flex gap-2 mb-6">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="h-10 bg-gray-200 rounded w-20 animate-pulse"></div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
+          </div>
         </div>
       </Layout>
     );
@@ -92,7 +97,7 @@ function ElectionsPage() {
 
   return (
     <Layout>
-      <div className="p-6">
+      <div className="p-6 animate-fade-in">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Elections</h1>
@@ -110,7 +115,7 @@ function ElectionsPage() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-gray-200 overflow-x-auto">
+        <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-200">
           {['all', 'active', 'ending-soon', 'upcoming', 'closed'].map((tab) => (
             <button
               key={tab}
@@ -134,7 +139,7 @@ function ElectionsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {elections.map((election) => (
-              <div key={election.id} className="relative">
+              <div key={election.id} className="relative group">
                 {election.status === 'active' && (
                   <div className="absolute top-2 right-2 z-10">
                     <div className="flex items-center gap-1 bg-red-500 text-white px-2 py-0.5 rounded-full text-xs">
@@ -145,11 +150,11 @@ function ElectionsPage() {
                 )}
                 <Link
                   to={`/elections/${election.id}`}
-                  className="block bg-white rounded-xl shadow-sm hover:shadow-md transition border border-gray-100 overflow-hidden"
+                  className="block bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 overflow-hidden"
                 >
                   <div className="p-6">
                     <div className="flex justify-between items-start gap-2 mb-3">
-                      <h3 className="text-lg font-semibold text-gray-900 flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 flex-1 line-clamp-2">
                         {election.title}
                       </h3>
                       <StatusBadge status={election.status} endDateTime={election.end_datetime} />

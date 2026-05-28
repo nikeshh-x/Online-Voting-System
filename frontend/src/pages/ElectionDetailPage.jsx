@@ -5,6 +5,7 @@ import Layout from '../components/Layout';
 import StatusBadge from '../components/StatusBadge';
 import ElectionProgress from '../components/ElectionProgress';
 import CountdownTimer from '../components/CountdownTimer';
+import Toast from '../components/Toast';
 import { getElectionDetail, checkUserVote, castVote } from '../services/api';
 
 function ElectionDetailPage() {
@@ -21,6 +22,7 @@ function ElectionDetailPage() {
   const [copied, setCopied] = useState(false);
   const [liveVotes, setLiveVotes] = useState(0);
   const [votesAnimating, setVotesAnimating] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const userStr = localStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
@@ -90,6 +92,7 @@ function ElectionDetailPage() {
         setHasVoted(true);
         setShowConfirmModal(false);
         setShowReceiptModal(true);
+        setToast({ message: 'Vote cast successfully!', type: 'success' });
         fetchElection();
       }
     } catch (err) {
@@ -101,7 +104,7 @@ function ElectionDetailPage() {
         const errors = err.response.data.errors;
         errorMsg = typeof errors === 'object' ? Object.values(errors).flat()[0] : errors;
       }
-      alert(errorMsg);
+      setToast({ message: errorMsg, type: 'error' });
     } finally {
       setVoting(false);
     }
@@ -148,10 +151,10 @@ function ElectionDetailPage() {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-6 animate-fade-in">
         <Link
           to="/elections"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition"
         >
           ← Back to Elections
         </Link>
@@ -162,7 +165,7 @@ function ElectionDetailPage() {
             <div className="flex justify-between items-start">
               <div>
                 <h1 className="text-2xl font-bold text-white">{election.title}</h1>
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex flex-wrap items-center gap-2 mt-2">
                   <StatusBadge status={election.status} endDateTime={election.end_datetime} />
                   {election.status === 'active' && (
                     <div className="flex items-center gap-1 bg-red-500 text-white px-2 py-0.5 rounded-full text-xs">
@@ -178,16 +181,16 @@ function ElectionDetailPage() {
           <div className="p-6 space-y-4">
             <p className="text-gray-700">{election.description}</p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
               <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-gray-400" />
+                <Calendar className="h-5 w-5 text-gray-400 shrink-0" />
                 <div>
                   <p className="text-sm text-gray-500">Start Date</p>
                   <p className="font-medium">{formatDate(election.start_datetime)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-gray-400" />
+                <Clock className="h-5 w-5 text-gray-400 shrink-0" />
                 <div>
                   <p className="text-sm text-gray-500">End Date</p>
                   <p className="font-medium">{formatDate(election.end_datetime)}</p>
@@ -206,7 +209,7 @@ function ElectionDetailPage() {
               <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
                 <TrendingUp size={16} className="text-green-500" />
                 <span className="text-sm text-gray-500">Total Votes:</span>
-                <span className={`font-bold text-primary-600 ${votesAnimating ? 'scale-110 transition-transform' : ''}`}>
+                <span className={`font-bold text-primary-600 transition-all duration-300 ${votesAnimating ? 'scale-110' : ''}`}>
                   {liveVotes}
                 </span>
               </div>
@@ -226,9 +229,9 @@ function ElectionDetailPage() {
 
         {/* Already Voted Message */}
         {hasVoted && !voteResult && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 animate-fade-in">
             <div className="flex items-center gap-3">
-              <CheckCircle className="h-5 w-5 text-blue-500" />
+              <CheckCircle className="h-5 w-5 text-blue-500 shrink-0" />
               <p className="text-blue-800">You have already voted in this election.</p>
             </div>
           </div>
@@ -251,15 +254,15 @@ function ElectionDetailPage() {
                   }`}
                   onClick={() => !hasVoted && !voteResult && handleVoteClick(candidate)}
                 >
-                  <div className="flex items-start gap-4">
+                  <div className="flex flex-col sm:flex-row items-start gap-4">
                     {candidate.photo ? (
                       <img
                         src={candidate.photo}
                         alt={candidate.name}
-                        className="w-16 h-16 rounded-full object-cover"
+                        className="w-16 h-16 rounded-full object-cover shrink-0"
                       />
                     ) : (
-                      <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center">
+                      <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center shrink-0">
                         <span className="text-primary-500 font-bold text-xl">
                           {candidate.name?.charAt(0) || "?"}
                         </span>
@@ -273,7 +276,7 @@ function ElectionDetailPage() {
                       )}
                     </div>
                     {election.status === "active" && !hasVoted && !voteResult && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 mt-2 sm:mt-0">
                         <input
                           type="radio"
                           name="candidate"
@@ -283,7 +286,7 @@ function ElectionDetailPage() {
                         />
                       </div>
                     )}
-                    {hasVoted && <span className="text-green-600 text-sm">✓ Voted</span>}
+                    {hasVoted && <span className="text-green-600 text-sm mt-2 sm:mt-0">✓ Voted</span>}
                   </div>
                 </div>
               ))
@@ -322,7 +325,7 @@ function ElectionDetailPage() {
 
         {/* Confirmation Modal */}
         {showConfirmModal && selectedCandidate && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
             <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Confirm Your Vote</h3>
@@ -336,7 +339,7 @@ function ElectionDetailPage() {
                 {selectedCandidate.party && <p className="text-sm text-gray-500">{selectedCandidate.party}</p>}
               </div>
               <p className="text-sm text-red-500 mb-4">⚠️ This action cannot be undone!</p>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => setShowConfirmModal(false)}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
@@ -357,7 +360,7 @@ function ElectionDetailPage() {
 
         {/* Receipt Modal */}
         {showReceiptModal && voteResult && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
             <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
               <div className="text-center mb-4">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -377,7 +380,7 @@ function ElectionDetailPage() {
                   {copied ? "Copied!" : "Copy Hash"}
                 </button>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => {
                     setShowReceiptModal(false);
@@ -396,6 +399,15 @@ function ElectionDetailPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Toast Notification */}
+        {toast && (
+          <Toast 
+            message={toast.message} 
+            type={toast.type} 
+            onClose={() => setToast(null)} 
+          />
         )}
       </div>
     </Layout>

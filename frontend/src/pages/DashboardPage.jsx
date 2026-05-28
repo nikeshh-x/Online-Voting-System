@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Vote, BarChart3, Users, Clock, CheckCircle, TrendingUp, Calendar } from 'lucide-react';
 import Layout from '../components/Layout';
+import { SkeletonStats } from '../components/Skeleton';
 import { getDashboardStats, getActiveElections, getElections } from '../services/api';
 
 function DashboardPage() {
@@ -50,7 +51,6 @@ function DashboardPage() {
         activeElections = activeRes;
       }
 
-      // Get total votes from API if available
       let totalVotes = 0;
       try {
         const statsRes = await getDashboardStats();
@@ -82,8 +82,32 @@ function DashboardPage() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-primary-500 text-xl">Loading dashboard...</div>
+        <div className="p-6">
+          <div className="mb-8">
+            <div className="h-8 bg-gray-200 rounded w-64 mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-96 animate-pulse"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {[1, 2, 3, 4].map(i => <SkeletonStats key={i} />)}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 animate-pulse">
+              <div className="h-6 bg-gray-200 rounded w-32 mb-4"></div>
+              <div className="space-y-3">
+                <div className="h-12 bg-gray-200 rounded"></div>
+                <div className="h-12 bg-gray-200 rounded"></div>
+                <div className="h-12 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl shadow-sm p-6 animate-pulse">
+              <div className="h-6 bg-white/30 rounded w-32 mb-4"></div>
+              <div className="space-y-2">
+                <div className="h-4 bg-white/30 rounded"></div>
+                <div className="h-4 bg-white/30 rounded"></div>
+                <div className="h-4 bg-white/30 rounded"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </Layout>
     );
@@ -91,7 +115,7 @@ function DashboardPage() {
 
   return (
     <Layout>
-      <div className="p-6">
+      <div className="p-6 animate-fade-in">
         {/* Welcome Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">
@@ -106,8 +130,8 @@ function DashboardPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">Total Elections</p>
@@ -119,7 +143,7 @@ function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">Active Elections</p>
@@ -139,7 +163,7 @@ function DashboardPage() {
             )}
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">Total Votes Cast</p>
@@ -151,7 +175,7 @@ function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-500 text-sm">Engagement Rate</p>
@@ -166,18 +190,18 @@ function DashboardPage() {
 
         {/* Verification Status Card */}
         {user && !user.is_verified && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-8">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-8 animate-fade-in">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center shrink-0">
                 <CheckCircle className="h-5 w-5 text-yellow-600" />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="font-medium text-yellow-800">Email Not Verified</p>
                 <p className="text-sm text-yellow-700">Please check your email to verify your account.</p>
               </div>
               <Link
                 to="/resend-verification"
-                className="ml-auto bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-yellow-600 transition"
+                className="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-yellow-600 transition whitespace-nowrap"
               >
                 Resend Email
               </Link>
