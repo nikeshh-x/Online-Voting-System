@@ -31,6 +31,7 @@ from django.utils import timezone
 from audit.models import AuditLog
 from django.db.models import Q
 from datetime import datetime, timedelta
+from django.db import transaction
 
 
 class HealthCheckView(APIView):
@@ -553,10 +554,27 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
         return [IsAuthenticated(), IsAdminUser()]
 
 # Voting Views
+from django.db import transaction  # Add this at the top
+
 class CastVoteView(APIView):
     permission_classes = [IsAuthenticated]
-
+    
+    @transaction.atomic
     def post(self, request):
+        # Check if user is admin - admins cannot vote
+        if request.user.is_admin:
+            return Response({
+                'status': 'error',
+                'message': 'Administrators cannot vote'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Check if user has a linked citizen
+        if not request.user.citizen:
+            return Response({
+                'status': 'error',
+                'message': 'No citizen profile linked. Please complete registration.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         # Rate limiting: 10 votes per hour per IP
         ip_address = request.META.get('REMOTE_ADDR')
         rate_limit_key = f"vote_rate_limit_{ip_address}"
@@ -568,13 +586,14 @@ class CastVoteView(APIView):
                 'message': 'Rate limit exceeded. Maximum 10 votes per hour allowed.'
             }, status=status.HTTP_429_TOO_MANY_REQUESTS)
         
-        serializer = VoteSerializer(data=request.data, context={'request':request})
-
+        serializer = VoteSerializer(data=request.data, context={'request': request})
+        
         if serializer.is_valid():
             user = request.user
             election = serializer.validated_data['election']
             candidate = serializer.validated_data['candidate']
-
+            
+            # Double-check with select_for_update to prevent race conditions
             existing_vote = Vote.objects.select_for_update().filter(
                 voter=user, 
                 election=election
@@ -585,40 +604,26 @@ class CastVoteView(APIView):
                     'status': 'error',
                     'message': 'You have already voted in this election.'
                 }, status=status.HTTP_400_BAD_REQUEST)
-
+            
+            # Create vote
             vote = Vote.objects.create(
-                voter = user,
-                election = election,
-                candidate =  candidate,
-                ip_address = request.META.get('REMOTE_ADDR')
+                voter=user,
+                election=election,
+                candidate=candidate,
+                ip_address=ip_address
             )
-            cache.set(rate_limit_key, vote_count + 1, 3600)
-
-            user.has_voted = True
-            user.save(update_fields=['has_voted'])
-
-            from audit.models import AuditLog
-            AuditLog.objects.create(
-                user=user,
-                action='vote_cast',
-                details={
-                    'election_id':election.id,
-                    'election_title':election.title,
-                    'candidate_id':candidate.id,
-                    'candidate_name':candidate.name,
-                    'ip_address':request.META.get('REMOTE_ADDR'),
-                },
-                ip_address = request.META.get('REMOTE_ADDR')
-            )
-
+            
+            # Increment rate limit counter
+            cache.set(rate_limit_key, vote_count + 1, 3600)  # 1 hour expiry
+            
             return Response({
-                'status':'success',
-                'message':'Your vote has been case successfully!',
+                'status': 'success',
+                'message': 'Your vote has been cast successfully!',
                 'data': {
                     'vote_hash': vote.vote_hash,
                     'election': election.title,
                     'candidate': candidate.name,
-                    'timestamp' : vote.timestamp   
+                    'timestamp': vote.timestamp
                 }
             }, status=status.HTTP_201_CREATED)
         

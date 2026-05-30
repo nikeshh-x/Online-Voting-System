@@ -20,39 +20,41 @@ function AdminLoginPage() {
     setError("");
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError("");
 
-    try {
-      const response = await api.post("/admin/login/", formData);
+  try {
+    const response = await api.post("/admin/login/", formData);
+    
+    if (response.data.status === "success") {
+      // Clear any existing tokens first
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("admin_access_token");
+      localStorage.removeItem("admin_refresh_token");
+      localStorage.removeItem("admin_user");
+      localStorage.removeItem("is_admin");
       
-      if (response.data.status === "success") {
-        // Clear any existing voter tokens
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        localStorage.removeItem("user");
-        
-        // Store admin tokens
-        localStorage.setItem("admin_access_token", response.data.data.tokens.access);
-        localStorage.setItem("admin_refresh_token", response.data.data.tokens.refresh);
-        localStorage.setItem("admin_user", JSON.stringify(response.data.data.user));
-        localStorage.setItem("is_admin", "true");
-        
-        // Also store as regular token for API interceptors
-        localStorage.setItem("access_token", response.data.data.tokens.access);
-        localStorage.setItem("user", JSON.stringify(response.data.data.user));
-        
-        navigate("/admin");
-      }
-    } catch (error) {
-      console.error("Admin login error:", error);
-      setError(error.response?.data?.message || "Login failed");
-    } finally {
-      setLoading(false);
+      // Store ONLY admin tokens
+      localStorage.setItem("admin_access_token", response.data.data.tokens.access);
+      localStorage.setItem("admin_refresh_token", response.data.data.tokens.refresh);
+      localStorage.setItem("admin_user", JSON.stringify(response.data.data.user));
+      localStorage.setItem("is_admin", "true");
+      
+      // DO NOT store regular tokens here
+      
+      navigate("/admin");
     }
-  };
+  } catch (error) {
+    console.error("Admin login error:", error);
+    setError(error.response?.data?.message || "Login failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 py-12 px-4">

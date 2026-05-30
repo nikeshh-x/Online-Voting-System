@@ -16,7 +16,10 @@ import ResultsListPage from "./pages/ResultsListPage";
 import VoteHistoryPage from "./pages/VoteHistoryPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
-import AuditLogPage from './pages/AuditLogPage';
+import AuditLogPage from "./pages/AuditLogPage";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminElections from "./pages/admin/AdminElections";
+import VoterRoute from './components/VoterRoute';
 
 function App() {
   return (
@@ -56,87 +59,103 @@ function App() {
           }
         />
         <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+        <Route path="/admin-login" element={<AdminLoginPage />} />
 
-        {/* Protected Routes */}
+        {/* Protected Routes - Regular Users */}
         <Route
           path="/dashboard"
           element={
-            <PrivateRoute>
+            <VoterRoute>
               <DashboardPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <PrivateRoute>
-              <ProfilePage />
-            </PrivateRoute>
+            </VoterRoute>
           }
         />
         <Route
           path="/elections"
           element={
-            <PrivateRoute>
+            <VoterRoute>
               <ElectionsPage />
-            </PrivateRoute>
+            </VoterRoute>
           }
         />
         <Route
           path="/elections/:id"
           element={
-            <PrivateRoute>
+            <VoterRoute>
               <ElectionDetailPage />
-            </PrivateRoute>
+            </VoterRoute>
           }
         />
         <Route
           path="/results/:id"
           element={
-            <PrivateRoute>
+            <VoterRoute>
               <ResultsPage />
-            </PrivateRoute>
+            </VoterRoute>
           }
         />
         <Route
           path="/results"
           element={
-            <PrivateRoute>
+            <VoterRoute>
               <ResultsListPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <PrivateRoute>
-              <AdminDashboardPage />
-            </PrivateRoute>
+            </VoterRoute>
           }
         />
         <Route
           path="/vote-history"
           element={
-            <PrivateRoute>
+            <VoterRoute>
               <VoteHistoryPage />
+            </VoterRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <VoterRoute>
+              <ProfilePage />
+            </VoterRoute>
+          }
+        />
+
+        {/* Admin Routes - New Dedicated Admin Dashboard */}
+        <Route
+          path="/admin"
+          element={
+            <PrivateRoute requireAdmin={true}>
+              <AdminDashboard />
             </PrivateRoute>
           }
         />
-        <Route path="/admin/audit-logs" element={
-  <PrivateRoute requireAdmin={true}>
-    <AuditLogPage />
-  </PrivateRoute>
-} />
-        // Admin routes
-        <Route path="/admin-login" element={<AdminLoginPage />} />
         <Route
-          path="/admin"
+          path="/admin/elections"
+          element={
+            <PrivateRoute requireAdmin={true}>
+              <AdminElections />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/audit-logs"
+          element={
+            <PrivateRoute requireAdmin={true}>
+              <AuditLogPage />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Backup Admin Route (Old Dashboard) */}
+        <Route
+          path="/admin-old"
           element={
             <PrivateRoute requireAdmin={true}>
               <AdminDashboardPage />
             </PrivateRoute>
           }
         />
+
+        {/* Default Route */}
         <Route
           path="/"
           element={

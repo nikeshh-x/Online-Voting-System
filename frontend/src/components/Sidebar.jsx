@@ -66,15 +66,20 @@ const Sidebar = () => {
   };
 
   const handleLogout = async () => {
-    // Clear admin tokens if present
-    if (localStorage.getItem("admin_access_token")) {
-      localStorage.removeItem("admin_access_token");
-      localStorage.removeItem("admin_refresh_token");
-      localStorage.removeItem("admin_user");
-      localStorage.removeItem("is_admin");
-    }
-    
-    // Clear regular user tokens
+    // Clear ALL auth-related items from localStorage
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("admin_access_token");
+    localStorage.removeItem("admin_refresh_token");
+    localStorage.removeItem("admin_user");
+    localStorage.removeItem("is_admin");
+
+    // Also clear any other potential items
+    localStorage.removeItem("verification_token");
+    localStorage.removeItem("verified_citizen");
+
+    // Optional: Call logout API if needed
     const refreshToken = localStorage.getItem("refresh_token");
     if (refreshToken) {
       try {
@@ -83,9 +88,7 @@ const Sidebar = () => {
         console.error("Logout error:", error);
       }
     }
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("user");
+
     navigate("/login");
   };
 
@@ -96,9 +99,9 @@ const Sidebar = () => {
 
   // Determine what to show in user info section
   const showUserInfo = isAuthenticated && user;
-  const displayName = isAdminUser 
-    ? (user?.username || user?.email || "Admin")
-    : (user?.full_name || user?.email || "User");
+  const displayName = isAdminUser
+    ? user?.username || user?.email || "Admin"
+    : user?.full_name || user?.email || "User";
   const userRole = isAdminUser ? "Administrator" : "Verified Voter";
 
   return (
@@ -163,9 +166,7 @@ const Sidebar = () => {
                   <p className="text-sm font-medium text-white truncate">
                     {displayName}
                   </p>
-                  <p className="text-xs text-gray-400 truncate">
-                    {userRole}
-                  </p>
+                  <p className="text-xs text-gray-400 truncate">{userRole}</p>
                 </div>
               )}
             </div>

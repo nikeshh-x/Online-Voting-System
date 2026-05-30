@@ -4,7 +4,16 @@ from django.utils import timezone
 
 class AuditMiddleware(MiddlewareMixin):
     """Middleware to log all user requests"""
-    
+
+    def _get_client_ip(self, request):
+        """Get client IP address from request"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+
     def process_request(self, request):
         # Store request info for later
         request._audit_start_time = timezone.now()
@@ -14,7 +23,7 @@ class AuditMiddleware(MiddlewareMixin):
         if request.path.startswith('/static/') or request.path.startswith('/media/') or request.path.startswith('/admin/jsi18n/'):
             return response
         
-        # Skip for audit log API calls (prevent infinite loop)
+        # Skip for audit log API calls
         if request.path.startswith('/api/admin/audit-logs/'):
             return response
         
@@ -24,30 +33,23 @@ class AuditMiddleware(MiddlewareMixin):
         
         # Log only for authenticated users and important actions
         if hasattr(request, 'user') and request.user.is_authenticated and request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
-            # Get client IP
-            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-            if x_forwarded_for:
-                ip_address = x_forwarded_for.split(',')[0]
-            else:
-                ip_address = request.META.get('REMOTE_ADDR')
+            # Only log successful requests (status code < 400)
+            if response.status_code >= 400:
+                return response  # Skip failed requests
             
-            # Determine action based on path
+            # Don't log admin votes separately (they're prevented anyway)
+            if request.user.is_admin and request.path.startswith('/api/vote/'):
+                return response
+            
             action = self._get_action_from_path(request.path, request.method)
-            
             if action:
                 AuditLog.objects.create(
                     user=request.user,
                     action=action,
-                    details={
-                        'path': request.path,
-                        'method': request.method,
-                        'status_code': response.status_code,
-                        'data': str(request.POST.dict()) if request.POST else None
-                    },
-                    ip_address=ip_address,
-                    user_agent=request.META.get('HTTP_USER_AGENT', '')
+                    ip_address=self._get_client_ip(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    timestamp=request._audit_start_time
                 )
-        
         return response
     
     def _get_action_from_path(self, path, method):

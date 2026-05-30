@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { 
   Download, 
   Filter, 
   RefreshCw, 
   ChevronLeft, 
   ChevronRight,
-  Calendar,
-  Mail,
-  Activity
+  Eye,
+  EyeOff
 } from "lucide-react";
-import Layout from "../components/Layout";
+import AdminLayout from "../components/AdminLayout";
 import api from "../services/api";
 
 function AuditLogPage() {
@@ -28,24 +26,11 @@ function AuditLogPage() {
     total: 0,
     total_pages: 0,
   });
-  const [availableActions, setAvailableActions] = useState({});
-
-  useEffect(() => {
-    checkAdminAccess();
-  }, []);
+  const [availableActions, setAvailableActions] = useState([]);
 
   useEffect(() => {
     fetchAuditLogs();
   }, [filters, pagination.page]);
-
-  const checkAdminAccess = () => {
-    const isAdmin = localStorage.getItem("is_admin") === "true";
-    const adminToken = localStorage.getItem("admin_access_token");
-    
-    if (!isAdmin || !adminToken) {
-      window.location.href = "/admin-login";
-    }
-  };
 
   const fetchAuditLogs = async () => {
     setLoading(true);
@@ -153,11 +138,21 @@ function AuditLogPage() {
     return "bg-gray-50 text-gray-700";
   };
 
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-64">
+          <div className="text-primary-500">Loading audit logs...</div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
   return (
-    <Layout>
-      <div className="p-6">
+    <AdminLayout>
+      <div className="space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Audit Logs</h1>
             <p className="text-gray-500 mt-1">Track all user activities in the system</p>
@@ -181,7 +176,7 @@ function AuditLogPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-100">
+        <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
           <div className="flex items-center gap-2 mb-3">
             <Filter size={16} className="text-gray-400" />
             <h3 className="font-medium text-gray-700">Filters</h3>
@@ -260,10 +255,7 @@ function AuditLogPage() {
                 {loading ? (
                   <tr>
                     <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                      <div className="flex justify-center items-center gap-2">
-                        <RefreshCw size={16} className="animate-spin" />
-                        Loading audit logs...
-                      </div>
+                      Loading audit logs...
                     </td>
                   </tr>
                 ) : logs.length === 0 ? (
@@ -328,7 +320,7 @@ function AuditLogPage() {
           )}
         </div>
       </div>
-    </Layout>
+    </AdminLayout>
   );
 }
 
