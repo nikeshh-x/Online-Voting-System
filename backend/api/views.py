@@ -1339,3 +1339,25 @@ class RunAnalyticsView(APIView):
                 'status': 'error',
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class PCADataView(APIView):
+    """Get PCA data for scatter plot"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        if not request.user.is_admin:
+            return Response({'status': 'error', 'message': 'Admin access required'}, status=403)
+        
+        try:
+            if not os.path.exists('pca_data.csv'):
+                return Response({'status': 'error', 'message': 'Run clustering first'}, status=404)
+            
+            df = pd.read_csv('pca_data.csv')
+            data = df.to_dict('records')
+            
+            return Response({
+                'status': 'success',
+                'data': data
+            })
+        except Exception as e:
+            return Response({'status': 'error', 'message': str(e)}, status=500)

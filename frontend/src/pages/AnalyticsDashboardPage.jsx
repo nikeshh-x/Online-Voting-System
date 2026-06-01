@@ -1,20 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { Bar, Pie } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
-import { RefreshCw, Users, TrendingUp, Clock, Award } from 'lucide-react';
+import { Bar, Pie, Scatter } from 'react-chartjs-2';
+import { 
+  Chart as ChartJS, 
+  CategoryScale, 
+  LinearScale, 
+  BarElement, 
+  Title, 
+  Tooltip, 
+  Legend, 
+  ArcElement,
+  PointElement,
+  LineElement
+} from 'chart.js';
+import { RefreshCw, Users, TrendingUp, Clock, Award, Download } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import api from '../services/api';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale, 
+  LinearScale, 
+  BarElement, 
+  Title, 
+  Tooltip, 
+  Legend, 
+  ArcElement,
+  PointElement,
+  LineElement
+);
 
 function AnalyticsDashboardPage() {
   const [data, setData] = useState(null);
+  const [pcaData, setPcaData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     fetchAnalytics();
+    fetchPCAData();
   }, []);
 
   const fetchAnalytics = async () => {
@@ -37,6 +61,20 @@ function AnalyticsDashboardPage() {
     }
   };
 
+  const fetchPCAData = async () => {
+    try {
+      const adminToken = localStorage.getItem('admin_access_token');
+      const response = await api.get('/analytics/pca/', {
+        headers: { Authorization: `Bearer ${adminToken}` }
+      });
+      if (response.data.status === 'success') {
+        setPcaData(response.data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching PCA data:', err);
+    }
+  };
+
   const runAnalytics = async () => {
     setUpdating(true);
     try {
@@ -46,6 +84,7 @@ function AnalyticsDashboardPage() {
       });
       if (response.data.status === 'success') {
         await fetchAnalytics();
+        await fetchPCAData();
       } else {
         setError(response.data.message);
       }
@@ -57,7 +96,28 @@ function AnalyticsDashboardPage() {
     }
   };
 
-  // Prepare chart data
+  const exportReport = () => {
+    if (!data) return;
+    
+    const reportData = {
+      total_voters: data.total_voters,
+      total_clusters: data.total_clusters,
+      clusters: data.clusters,
+      generated_at: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analytics_report_${new Date().toISOString().slice(0, 19)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const COLORS = ['#DC143C', '#FF6B6B', '#FFB347', '#4ECDC4', '#45B7D1', '#96CEB4'];
+
+  // Bar chart data
   const barChartData = {
     labels: data?.clusters?.map(c => `Cluster ${c.id}`) || [],
     datasets: [
@@ -71,14 +131,28 @@ function AnalyticsDashboardPage() {
     ],
   };
 
+  // Pie chart data
   const pieChartData = {
     labels: data?.clusters?.map(c => `Cluster ${c.id} (${c.percentage}%)`) || [],
     datasets: [
       {
         data: data?.clusters?.map(c => c.percentage) || [],
-        backgroundColor: ['#DC143C', '#FF6B6B', '#FFB347', '#4ECDC4', '#45B7D1', '#96CEB4'],
+        backgroundColor: COLORS,
       },
     ],
+  };
+
+  // Scatter plot data for PCA visualization
+  const scatterData = {
+    datasets: data?.clusters?.map((cluster, idx) => ({
+      label: `Cluster ${cluster.id}`,
+      data: pcaData?.filter(d => d.cluster === cluster.id).map(d => ({ x: d.PC1, y: d.PC2 })) || [],
+      backgroundColor: COLORS[idx % COLORS.length],
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      pointBorderColor: 'white',
+      pointBorderWidth: 2,
+    })) || [],
   };
 
   const chartOptions = {
@@ -88,6 +162,49 @@ function AnalyticsDashboardPage() {
       legend: {
         position: 'top',
       },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            if (context.dataset.label) {
+              return `${context.dataset.label}: ${context.raw}`;
+            }
+            return `${context.label}: ${context.raw}`;
+          }
+        }
+      }
+    },
+  };
+
+  const scatterOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            return `Cluster: ${context.dataset.label}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: { 
+        title: { 
+          display: true, 
+          text: 'Principal Component 1 (PC1)',
+          font: { weight: 'bold' }
+        } 
+      },
+      y: { 
+        title: { 
+          display: true, 
+          text: 'Principal Component 2 (PC2)',
+          font: { weight: 'bold' }
+        } 
+      }
     },
   };
 
@@ -110,14 +227,24 @@ function AnalyticsDashboardPage() {
             <h1 className="text-2xl font-bold text-gray-900">K-Means Analytics</h1>
             <p className="text-gray-500 mt-1">Voter segmentation and clustering analysis</p>
           </div>
-          <button
-            onClick={runAnalytics}
-            disabled={updating}
-            className="flex items-center gap-2 bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition disabled:opacity-50"
-          >
-            <RefreshCw size={16} className={updating ? 'animate-spin' : ''} />
-            {updating ? 'Running...' : 'Run Analysis'}
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={exportReport}
+              disabled={!data}
+              className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+            >
+              <Download size={16} />
+              Export Report
+            </button>
+            <button
+              onClick={runAnalytics}
+              disabled={updating}
+              className="flex items-center gap-2 bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={updating ? 'animate-spin' : ''} />
+              {updating ? 'Running...' : 'Run Analysis'}
+            </button>
+          </div>
         </div>
 
         {error ? (
@@ -174,7 +301,7 @@ function AnalyticsDashboardPage() {
               </div>
             </div>
 
-            {/* Charts */}
+            {/* Charts Row 1 - Distribution */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Cluster Distribution (Bar Chart)</h3>
@@ -190,54 +317,58 @@ function AnalyticsDashboardPage() {
               </div>
             </div>
 
-            {/* Cluster Details */}
+            {/* PCA Scatter Plot */}
+            {pcaData && pcaData.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">PCA Visualization (2D Scatter Plot)</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Principal Component Analysis - Each point represents a voter, colored by cluster
+                </p>
+                <div className="h-96">
+                  <Scatter data={scatterData} options={scatterOptions} />
+                </div>
+              </div>
+            )}
+
+            {/* Cluster Details Table */}
             <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
               <div className="px-6 py-4 border-b border-gray-100">
                 <h3 className="text-lg font-semibold text-gray-900">Cluster Analysis</h3>
                 <p className="text-sm text-gray-500">Detailed breakdown of each voter segment</p>
               </div>
-              <div className="divide-y divide-gray-100">
-                {data?.clusters?.map((cluster) => (
-                  <div key={cluster.id} className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-md font-semibold text-primary-500">Cluster {cluster.id}</h4>
-                      <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
-                        {cluster.size} voters ({cluster.percentage}%)
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Age Range</p>
-                        <p className="font-medium">{cluster.age_min} - {cluster.age_max} years</p>
-                        <p className="text-xs text-gray-400">Avg: {cluster.avg_age} years</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Top Candidate</p>
-                        <p className="font-medium">{cluster.top_candidate}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Gender Distribution</p>
-                        <div className="flex gap-2 mt-1 flex-wrap">
-                          {Object.entries(cluster.genders || {}).map(([gender, count]) => (
-                            <span key={gender} className="text-xs bg-gray-100 px-2 py-1 rounded">
-                              {gender}: {count}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3">
-                      <p className="text-sm text-gray-500">Vote Time Preference</p>
-                      <div className="flex gap-2 mt-1 flex-wrap">
-                        {Object.entries(cluster.time_categories || {}).map(([time, count]) => (
-                          <span key={time} className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded">
-                            {time}: {count}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cluster</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Size</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Age Range</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Age</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Top Candidate</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gender</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {data?.clusters?.map((cluster) => (
+                      <tr key={cluster.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 font-medium text-primary-500">Cluster {cluster.id}</td>
+                        <td className="px-6 py-4">{cluster.size} ({cluster.percentage}%)</td>
+                        <td className="px-6 py-4">{cluster.age_min} - {cluster.age_max}</td>
+                        <td className="px-6 py-4">{cluster.avg_age} years</td>
+                        <td className="px-6 py-4">{cluster.top_candidate}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-1">
+                            {Object.entries(cluster.genders || {}).map(([gender, count]) => (
+                              <span key={gender} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                {gender}: {count}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </>

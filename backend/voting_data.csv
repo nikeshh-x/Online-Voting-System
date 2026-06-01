@@ -1,15 +1,15 @@
 vote_id,election_id,election_title,user_id,user_email,candidate_id,candidate_name,age,district,district_code,gender,gender_code,vote_time,vote_time_hour,time_category
-27,5,testq,11,nikace002@gmail.com,7,Test Candidate1,76,Pokhara,91,M,1,2026-06-01 06:09:31,6,morning
-26,5,testq,10,sujata@test.com,7,Test Candidate1,56,Chitwan,21,O,3,2026-06-01 06:09:30,6,morning
-25,5,testq,9,suresh@test.com,7,Test Candidate1,33,Kaski,23,F,2,2026-06-01 06:09:30,6,morning
-24,5,testq,8,uma@test.com,5,Nikeshh,51,Bhaktapur,58,O,3,2026-06-01 06:09:30,6,morning
-23,5,testq,5,sunita@test.com,5,Nikeshh,58,Bhaktapur,58,F,2,2026-06-01 06:09:29,6,morning
-22,5,testq,4,laxmi@test.com,5,Nikeshh,71,Lalitpur,72,O,3,2026-06-01 06:09:29,6,morning
-21,5,testq,2,hari@test.com,7,Test Candidate1,51,Bhaktapur,58,M,1,2026-06-01 06:09:28,6,morning
-20,5,testq,6,nikesh@test.com,5,Nikeshh,0,Kathmandu,84,M,1,2026-05-30 12:47:35,12,afternoon
-16,3,New Election,9,suresh@test.com,8,Test Candidate 2,33,Kaski,23,F,2,2026-05-27 11:06:58,11,morning
-15,3,New Election,8,uma@test.com,7,Test Candidate1,51,Bhaktapur,58,O,3,2026-05-27 11:00:58,11,morning
-14,3,New Election,5,sunita@test.com,7,Test Candidate1,58,Bhaktapur,58,F,2,2026-05-26 09:50:01,9,morning
-13,3,New Election,4,laxmi@test.com,7,Test Candidate1,71,Lalitpur,72,O,3,2026-05-26 09:49:42,9,morning
-12,3,New Election,2,hari@test.com,7,Test Candidate1,51,Bhaktapur,58,M,1,2026-05-26 09:49:00,9,morning
-11,3,New Election,6,nikesh@test.com,7,Test Candidate1,0,Kathmandu,84,M,1,2026-05-25 13:04:02,13,afternoon
+27,5,testq,11,nikace002@gmail.com,7,Test Candidate1,76,Pokhara,4,M,1,2026-06-01 06:09:31,6,morning
+26,5,testq,10,sujata@test.com,7,Test Candidate1,56,Chitwan,70,O,3,2026-06-01 06:09:30,6,morning
+25,5,testq,9,suresh@test.com,7,Test Candidate1,33,Kaski,40,F,2,2026-06-01 06:09:30,6,morning
+24,5,testq,8,uma@test.com,5,Nikeshh,51,Bhaktapur,10,O,3,2026-06-01 06:09:30,6,morning
+23,5,testq,5,sunita@test.com,5,Nikeshh,58,Bhaktapur,10,F,2,2026-06-01 06:09:29,6,morning
+22,5,testq,4,laxmi@test.com,5,Nikeshh,71,Lalitpur,92,O,3,2026-06-01 06:09:29,6,morning
+21,5,testq,2,hari@test.com,7,Test Candidate1,51,Bhaktapur,10,M,1,2026-06-01 06:09:28,6,morning
+20,5,testq,6,nikesh@test.com,5,Nikeshh,0,Kathmandu,88,M,1,2026-05-30 12:47:35,12,afternoon
+16,3,New Election,9,suresh@test.com,8,Test Candidate 2,33,Kaski,40,F,2,2026-05-27 11:06:58,11,morning
+15,3,New Election,8,uma@test.com,7,Test Candidate1,51,Bhaktapur,10,O,3,2026-05-27 11:00:58,11,morning
+14,3,New Election,5,sunita@test.com,7,Test Candidate1,58,Bhaktapur,10,F,2,2026-05-26 09:50:01,9,morning
+13,3,New Election,4,laxmi@test.com,7,Test Candidate1,71,Lalitpur,92,O,3,2026-05-26 09:49:42,9,morning
+12,3,New Election,2,hari@test.com,7,Test Candidate1,51,Bhaktapur,10,M,1,2026-05-26 09:49:00,9,morning
+11,3,New Election,6,nikesh@test.com,7,Test Candidate1,0,Kathmandu,88,M,1,2026-05-25 13:04:02,13,afternoon

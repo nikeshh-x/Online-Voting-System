@@ -4,6 +4,7 @@ from .views import (
     HealthCheckView,
     CitizenListView,
     CitizenDetailView,
+    PCADataView,
     VerifyCitizenshipView,
     RegisterView,
     VerifyEmailView,
@@ -91,4 +92,5 @@ urlpatterns = [
 
     path('analytics/data/', AnalyticsDataView.as_view(), name='analytics-data'),
     path('analytics/run/', RunAnalyticsView.as_view(), name='run-analytics'),
+    path('analytics/pca/', PCADataView.as_view(), name='pca-data'),
 ]

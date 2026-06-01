@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import joblib
 from django.core.management.base import BaseCommand
 import os
+from sklearn.decomposition import PCA
 
 class Command(BaseCommand):
     help = 'Run K-Means clustering on prepared data'
@@ -43,7 +44,7 @@ class Command(BaseCommand):
         if not k_value:
             self.stdout.write("\n📊 Finding optimal K using elbow method...")
             inertias = []
-            K_range = range(2, min(5, len(X) - 1))  # Max K limited by data size
+            K_range = range(2, min(6, len(X) - 1))
             
             if len(K_range) < 1:
                 self.stdout.write(self.style.WARNING("Not enough data for elbow method. Using K=2"))
@@ -65,10 +66,12 @@ class Command(BaseCommand):
                 plt.savefig('elbow_curve.png')
                 self.stdout.write(self.style.SUCCESS("\n✅ Elbow curve saved to elbow_curve.png"))
                 
-                # Suggest K (where inertia starts decreasing slowly)
-                if len(inertias) > 1:
+                # Suggest optimal K (elbow point)
+                if len(inertias) > 2:
+                    # Find where inertia starts decreasing slowly
                     diffs = np.diff(inertias)
-                    k_value = min(3, len(K_range))  # Default to min(3, max K)
+                    k_value = np.argmin(diffs) + 2
+                    k_value = max(2, min(k_value, len(K_range)))
                 else:
                     k_value = 2
         
@@ -77,7 +80,7 @@ class Command(BaseCommand):
         kmeans = KMeans(n_clusters=k_value, random_state=42, n_init=10)
         clusters = kmeans.fit_predict(X)
         
-        # Calculate silhouette score (only if more than 1 cluster and enough data)
+        # Calculate silhouette score
         if k_value > 1 and len(X) > k_value:
             silhouette_avg = silhouette_score(X, clusters)
             self.stdout.write(f"\n📊 Silhouette Score: {silhouette_avg:.4f}")
@@ -91,6 +94,22 @@ class Command(BaseCommand):
         df['cluster'] = clusters
         df.to_csv('clustered_data.csv', index=False)
         
+        # PCA for visualization
+        self.stdout.write("\n📊 Running PCA for visualization...")
+        pca = PCA(n_components=2)
+        X_pca = pca.fit_transform(X)
+        
+        # Save PCA results
+        pca_df = pd.DataFrame(X_pca, columns=['PC1', 'PC2'])
+        pca_df['cluster'] = clusters
+        pca_df.to_csv('pca_data.csv', index=False)
+        
+        # Save PCA model
+        joblib.dump(pca, 'pca_model.pkl')
+        
+        explained_variance = pca.explained_variance_ratio_.sum()
+        self.stdout.write(f"📊 PCA Explained Variance: {explained_variance:.2%}")
+        
         # Print cluster sizes
         self.stdout.write("\n📊 Cluster Sizes:")
         for i in range(k_value):
@@ -100,3 +119,4 @@ class Command(BaseCommand):
         
         self.stdout.write(self.style.SUCCESS(f"\n✅ Clustering complete!"))
         self.stdout.write(f"📁 Results saved to clustered_data.csv")
+        self.stdout.write(f"📁 PCA data saved to pca_data.csv")
