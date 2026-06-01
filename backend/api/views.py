@@ -33,6 +33,11 @@ from django.db.models import Q
 from datetime import datetime, timedelta
 from django.db import transaction
 
+import pandas as pd
+import joblib
+import os
+from django.conf import settings
+
 
 class HealthCheckView(APIView):
     permission_classes = [AllowAny]
@@ -1217,4 +1222,120 @@ class TestEmailView(APIView):
             return Response({
                 'status': 'error',
                 'message': 'Failed to send email. Check SMTP settings.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class AnalyticsDataView(APIView):
+    """Get analytics data for dashboard"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Check if user is admin
+        if not request.user.is_admin:
+            return Response({
+                'status': 'error',
+                'message': 'Admin access required'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            # Check if files exist
+            if not os.path.exists('clustered_data.csv'):
+                return Response({
+                    'status': 'error',
+                    'message': 'No analytics data available. Run clustering first.'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Load data
+            clustered_df = pd.read_csv('clustered_data.csv')
+            original_df = pd.read_csv('voting_data.csv')
+            
+            # Get cluster distribution
+            cluster_counts = clustered_df['cluster'].value_counts().sort_index()
+            
+            # Prepare cluster details
+            clusters = []
+            for cluster in sorted(clustered_df['cluster'].unique()):
+                cluster_indices = clustered_df[clustered_df['cluster'] == cluster]['original_index'].astype(int)
+                cluster_data = original_df.iloc[cluster_indices]
+                
+                # Get top candidate
+                candidate_counts = cluster_data['candidate_name'].value_counts()
+                top_candidate = candidate_counts.index[0] if len(candidate_counts) > 0 else 'N/A'
+                
+                # Get age range
+                ages = cluster_data['age']
+                
+                # Get gender distribution
+                gender_counts = cluster_data['gender'].value_counts().to_dict()
+                
+                # Get time category
+                time_counts = cluster_data['time_category'].value_counts().to_dict()
+                
+                clusters.append({
+                    'id': int(cluster),
+                    'size': len(cluster_data),
+                    'percentage': round((len(cluster_data) / len(original_df)) * 100, 1),
+                    'avg_age': round(ages.mean(), 1) if len(ages) > 0 else 0,
+                    'age_min': int(ages.min()) if len(ages) > 0 else 0,
+                    'age_max': int(ages.max()) if len(ages) > 0 else 0,
+                    'top_candidate': top_candidate,
+                    'genders': gender_counts,
+                    'time_categories': time_counts,
+                })
+            
+            # Elbow data
+            elbow_exists = os.path.exists('elbow_curve.png')
+            
+            return Response({
+                'status': 'success',
+                'data': {
+                    'total_voters': len(original_df),
+                    'total_clusters': len(clusters),
+                    'clusters': clusters,
+                    'cluster_labels': [f"Cluster {i}" for i in cluster_counts.index],
+                    'cluster_values': cluster_counts.values.tolist(),
+                    'has_elbow': elbow_exists,
+                    'elbow_url': '/media/elbow_curve.png' if elbow_exists else None,
+                }
+            })
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class RunAnalyticsView(APIView):
+    """Run K-Means analytics"""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        # Check if user is admin
+        if not request.user.is_admin:
+            return Response({
+                'status': 'error',
+                'message': 'Admin access required'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            # Run data extraction
+            from django.core.management import call_command
+            call_command('extract_voting_data', output='voting_data.csv')
+            call_command('prepare_analytics_data', input='voting_data.csv', output='prepared_data.csv')
+            call_command('run_kmeans', input='prepared_data.csv')
+            
+            # Move elbow curve to media folder
+            import shutil
+            if os.path.exists('elbow_curve.png'):
+                os.makedirs('media', exist_ok=True)
+                shutil.copy('elbow_curve.png', 'media/elbow_curve.png')
+            
+            return Response({
+                'status': 'success',
+                'message': 'Analytics data updated successfully'
+            })
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

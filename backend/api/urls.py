@@ -30,7 +30,9 @@ from .views import (
     AdminAuditLogView,
     AdminLoginView,
     ElectionCountdownView,
-    TestEmailView
+    TestEmailView,
+    AnalyticsDataView, 
+    RunAnalyticsView
 )
 
 urlpatterns = [
@@ -86,4 +88,7 @@ urlpatterns = [
     path('admin/stats/', AdminStatsView.as_view(), name='admin-stats'),
 
     path('test-email/', TestEmailView.as_view(), name='test-email'),
+
+    path('analytics/data/', AnalyticsDataView.as_view(), name='analytics-data'),
+    path('analytics/run/', RunAnalyticsView.as_view(), name='run-analytics'),
 ]

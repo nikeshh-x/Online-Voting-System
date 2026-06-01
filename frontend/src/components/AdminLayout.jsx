@@ -44,6 +44,7 @@ function AdminLayout({ children }) {
     { name: 'Elections', path: '/admin/elections', icon: Vote },
     { name: 'Candidates', path: '/admin/candidates', icon: Users },
     { name: 'Citizens', path: '/admin/citizens', icon: UserCog },
+    { name: 'Analytics', path: '/admin/analytics', icon: BarChart3 },
     { name: 'Audit Logs', path: '/admin/audit-logs', icon: Activity },
   ];
 

@@ -20,6 +20,7 @@ import AuditLogPage from "./pages/AuditLogPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminElections from "./pages/admin/AdminElections";
 import VoterRoute from './components/VoterRoute';
+import AnalyticsDashboardPage from './pages/AnalyticsDashboardPage';
 
 function App() {
   return (
@@ -144,6 +145,14 @@ function App() {
             </PrivateRoute>
           }
         />
+        <Route
+  path="/admin/analytics"
+  element={
+    <PrivateRoute requireAdmin={true}>
+      <AnalyticsDashboardPage />
+    </PrivateRoute>
+  }
+/>
 
         {/* Backup Admin Route (Old Dashboard) */}
         <Route
