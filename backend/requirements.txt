@@ -11,3 +11,7 @@ PyJWT==2.13.0
 python-dotenv==1.2.2
 sqlparse==0.5.5
 tablib==3.9.0
+matplotlib==3.10.9
+numpy==2.4.6
+pandas==3.0.3
+scikit-learn==1.8.0
