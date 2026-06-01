@@ -559,28 +559,40 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
         return [IsAuthenticated(), IsAdminUser()]
 
 # Voting Views
-from django.db import transaction  # Add this at the top
-
 class CastVoteView(APIView):
+    """Cast a vote in an election"""
     permission_classes = [IsAuthenticated]
     
     @transaction.atomic
     def post(self, request):
-        # Check if user is admin - admins cannot vote
+        # 1. Check if user is admin
         if request.user.is_admin:
             return Response({
                 'status': 'error',
                 'message': 'Administrators cannot vote'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        # Check if user has a linked citizen
+        # 2. Check if user has a linked citizen
         if not request.user.citizen:
             return Response({
                 'status': 'error',
                 'message': 'No citizen profile linked. Please complete registration.'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Rate limiting: 10 votes per hour per IP
+        # 3. Check age eligibility (18+)
+        today = date.today()
+        dob = request.user.citizen.date_of_birth
+        age = today.year - dob.year
+        if today.month < dob.month or (today.month == dob.month and today.day < dob.day):
+            age -= 1
+        
+        if age < 18:
+            return Response({
+                'status': 'error',
+                'message': f'You must be 18 years or older to vote. Your age: {age}'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # 4. Rate limiting: 10 votes per hour per IP
         ip_address = request.META.get('REMOTE_ADDR')
         rate_limit_key = f"vote_rate_limit_{ip_address}"
         vote_count = cache.get(rate_limit_key, 0)
@@ -591,6 +603,7 @@ class CastVoteView(APIView):
                 'message': 'Rate limit exceeded. Maximum 10 votes per hour allowed.'
             }, status=status.HTTP_429_TOO_MANY_REQUESTS)
         
+        # 5. Validate serializer
         serializer = VoteSerializer(data=request.data, context={'request': request})
         
         if serializer.is_valid():
@@ -598,7 +611,7 @@ class CastVoteView(APIView):
             election = serializer.validated_data['election']
             candidate = serializer.validated_data['candidate']
             
-            # Double-check with select_for_update to prevent race conditions
+            # 6. Check if already voted (with select_for_update to prevent race conditions)
             existing_vote = Vote.objects.select_for_update().filter(
                 voter=user, 
                 election=election
@@ -610,7 +623,7 @@ class CastVoteView(APIView):
                     'message': 'You have already voted in this election.'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Create vote
+            # 7. Create vote
             vote = Vote.objects.create(
                 voter=user,
                 election=election,
@@ -618,8 +631,8 @@ class CastVoteView(APIView):
                 ip_address=ip_address
             )
             
-            # Increment rate limit counter
-            cache.set(rate_limit_key, vote_count + 1, 3600)  # 1 hour expiry
+            # 8. Increment rate limit counter
+            cache.set(rate_limit_key, vote_count + 1, 3600)
             
             return Response({
                 'status': 'success',

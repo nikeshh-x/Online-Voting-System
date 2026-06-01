@@ -242,9 +242,9 @@ function ResultsPage() {
             </div>
           </div>
           
-          <div className="bg-white rounded-xl shadow-sm p-3 border border-gray-100 flex items-center justify-center">
+          {/* <div className="bg-white rounded-xl shadow-sm p-3 border border-gray-100 flex items-center justify-center">
             <TurnoutGauge percentage={results.turnout_percentage} size={70} />
-          </div>
+          </div> */}
         </div>
 
         {/* Winner Announcement */}

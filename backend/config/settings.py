@@ -3,6 +3,9 @@ import os
 from datetime import timedelta
 from dotenv import load_dotenv
 
+import datetime
+print(datetime.datetime.now())
+
 # ============================================
 # CHANGE THIS ONE VARIABLE TO SWITCH ENVIRONMENT
 # ============================================
@@ -104,7 +107,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kathmandu'
 USE_I18N = True
 USE_TZ = True
 
