@@ -2,8 +2,6 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
-from django.utils import timezone
-from datetime import timedelta
 import uuid
 
 
@@ -35,14 +33,20 @@ def send_verification_email(user, request):
     plain_message = strip_tags(html_message)
     
     # Send email
-    send_mail(
-        subject='Verify Your Email - Online Voting System',
-        message=plain_message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        html_message=html_message,
-        fail_silently=False,
-    )
+    try:
+        send_mail(
+            subject='Verify Your Email - Online Voting System',
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        print(f"Verification email sent to {user.email}")
+        return True
+    except Exception as e:
+        print(f"Failed to send email to {user.email}: {str(e)}")
+        return False
 
 
 def send_welcome_email(user):
@@ -54,11 +58,17 @@ def send_welcome_email(user):
     html_message = render_to_string('emails/welcome_email.html', context)
     plain_message = strip_tags(html_message)
     
-    send_mail(
-        subject='Welcome to Online Voting System!',
-        message=plain_message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        html_message=html_message,
-        fail_silently=False,
-    )
+    try:
+        send_mail(
+            subject='Welcome to Online Voting System!',
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        print(f"Welcome email sent to {user.email}")
+        return True
+    except Exception as e:
+        print(f"Failed to send welcome email: {str(e)}")
+        return False

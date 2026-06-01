@@ -1195,3 +1195,26 @@ class AdminStatsView(APIView):
                 'recent_activity': recent_activity
             }
         })
+    
+
+
+class TestEmailView(APIView):
+    """Test email sending"""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        from accounts.utils import send_verification_email
+        user = request.user
+        
+        success = send_verification_email(user, request)
+        
+        if success:
+            return Response({
+                'status': 'success',
+                'message': f'Test email sent to {user.email}'
+            })
+        else:
+            return Response({
+                'status': 'error',
+                'message': 'Failed to send email. Check SMTP settings.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
