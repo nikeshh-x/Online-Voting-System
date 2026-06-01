@@ -32,6 +32,7 @@ from audit.models import AuditLog
 from django.db.models import Q
 from datetime import datetime, timedelta
 from django.db import transaction
+from datetime import date
 
 import pandas as pd
 import joblib
@@ -585,11 +586,11 @@ class CastVoteView(APIView):
         age = today.year - dob.year
         if today.month < dob.month or (today.month == dob.month and today.day < dob.day):
             age -= 1
-        
+
         if age < 18:
             return Response({
                 'status': 'error',
-                'message': f'You must be 18 years or older to vote. Your age: {age}'
+                'message': f'You must be 18 years or older to vote. Your age: {age}. Date of birth: {dob}'
             }, status=status.HTTP_403_FORBIDDEN)
         
         # 4. Rate limiting: 10 votes per hour per IP

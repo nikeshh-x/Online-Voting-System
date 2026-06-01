@@ -79,36 +79,48 @@ function ElectionDetailPage() {
   };
 
   const confirmVote = async () => {
-    setVoting(true);
+  setVoting(true);
+  
+  try {
+    const response = await castVote({
+      election_id: parseInt(id),
+      candidate_id: selectedCandidate.id
+    });
     
-    try {
-      const response = await castVote({
-        election_id: parseInt(id),
-        candidate_id: selectedCandidate.id
-      });
-      
-      if (response.status === 'success') {
-        setVoteResult(response.data);
-        setHasVoted(true);
-        setShowConfirmModal(false);
-        setShowReceiptModal(true);
-        setToast({ message: 'Vote cast successfully!', type: 'success' });
-        fetchElection();
-      }
-    } catch (err) {
-      console.error('Error casting vote:', err);
-      let errorMsg = 'Failed to cast vote. Please try again.';
-      if (err.response?.status === 429) {
-        errorMsg = 'Too many votes. Please wait an hour before voting again.';
-      } else if (err.response?.data?.errors) {
-        const errors = err.response.data.errors;
-        errorMsg = typeof errors === 'object' ? Object.values(errors).flat()[0] : errors;
-      }
-      setToast({ message: errorMsg, type: 'error' });
-    } finally {
-      setVoting(false);
+    if (response.status === 'success') {
+      setVoteResult(response.data);
+      setHasVoted(true);
+      setShowConfirmModal(false);
+      setShowReceiptModal(true);
+      setToast({ message: 'Vote cast successfully!', type: 'success' });
+      fetchElection();
     }
-  };
+  } catch (err) {
+    console.error('Error casting vote:', err);
+    
+    let errorMsg = 'Failed to cast vote. Please try again.';
+    
+    if (err.response?.status === 403) {
+      // Check if it's an age-related error
+      if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      } else {
+        errorMsg = 'You are not eligible to vote. You must be 18 years or older.';
+      }
+    } else if (err.response?.status === 429) {
+      errorMsg = 'Too many votes. Please wait an hour before voting again.';
+    } else if (err.response?.data?.errors) {
+      const errors = err.response.data.errors;
+      errorMsg = typeof errors === 'object' ? Object.values(errors).flat()[0] : errors;
+    } else if (err.response?.data?.message) {
+      errorMsg = err.response.data.message;
+    }
+    
+    setToast({ message: errorMsg, type: 'error' });
+  } finally {
+    setVoting(false);
+  }
+};
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
