@@ -37,3 +37,9 @@ dist-ssr/
 *.swp
 *.swo
 *~
+
+
+# Analytics generated files
+*.csv
+*.pkl
+elbow_curve.png
