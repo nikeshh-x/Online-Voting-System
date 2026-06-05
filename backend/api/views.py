@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import generics, status
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework import permissions
 from rest_framework.throttling import AnonRateThrottle
@@ -527,8 +528,7 @@ class CompletedElectionsView(APIView):
 # ========== CANDIDATE VIEWS ==========
 class CandidateListView(generics.ListCreateAPIView):
     """List candidates for an election or add new candidate"""
-    
-    serializer_class = CandidateListSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get_queryset(self):
         election_id = self.kwargs.get('election_id')
@@ -538,6 +538,11 @@ class CandidateListView(generics.ListCreateAPIView):
         if self.request.method == 'POST':
             return [IsAuthenticated(), IsAdminUser()]
         return [AllowAny()]
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return CandidateCreateUpdateSerializer
+        return CandidateListSerializer
     
     def perform_create(self, serializer):
         election_id = self.kwargs.get('election_id')
@@ -548,6 +553,7 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Get, update or delete candidate by ID"""
     
     queryset = Candidate.objects.all()
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get_serializer_class(self):
         if self.request.method == 'GET':
