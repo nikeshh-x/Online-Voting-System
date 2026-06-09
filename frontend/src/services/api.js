@@ -229,4 +229,38 @@ export const verifyVote = async (voteHash) => {
   return response.data;
 };
 
+// ========== CITIZENS MANAGEMENT API (Admin Only) ==========
+
+// Get all citizens with pagination and filters
+export const getCitizens = async (params = {}) => {
+  const queryString = new URLSearchParams(params).toString();
+  const url = queryString ? `/citizens/?${queryString}` : '/citizens/';
+  const response = await api.get(url);
+  return response.data;
+};
+
+// Get single citizen details
+export const getCitizenDetail = async (id) => {
+  const response = await api.get(`/citizens/${id}/`);
+  return response.data;
+};
+
+// Update citizen (admin only)
+export const updateCitizen = async (id, data) => {
+  const response = await api.put(`/citizens/${id}/`, data);
+  return response.data;
+};
+
+// Delete citizen (admin only)
+export const deleteCitizen = async (id) => {
+  const response = await api.delete(`/citizens/${id}/`);
+  return response.data;
+};
+
+// Get citizen statistics
+export const getCitizenStats = async () => {
+  const response = await api.get('/citizens/stats/');
+  return response.data;
+};
+
 export default api;

@@ -27,10 +27,28 @@ function AuditLogPage() {
     total_pages: 0,
   });
   const [availableActions, setAvailableActions] = useState([]);
+  
+  // Add debounced user search
+  const [debouncedUser, setDebouncedUser] = useState("");
+
+  // Debounce user filter
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedUser(filters.user);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [filters.user]);
+
+  // Fetch when debounced user changes OR other filters change
+  useEffect(() => {
+    if (debouncedUser !== undefined || filters.action || filters.date_from || filters.date_to) {
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }
+  }, [debouncedUser, filters.action, filters.date_from, filters.date_to]);
 
   useEffect(() => {
     fetchAuditLogs();
-  }, [filters, pagination.page]);
+  }, [pagination.page, debouncedUser, filters.action, filters.date_from, filters.date_to]);
 
   const fetchAuditLogs = async () => {
     setLoading(true);
@@ -40,7 +58,7 @@ function AuditLogPage() {
         page: pagination.page,
         page_size: pagination.page_size,
         ...(filters.action && { action: filters.action }),
-        ...(filters.user && { user: filters.user }),
+        ...(debouncedUser && { user: debouncedUser }),  // Use debouncedUser here
         ...(filters.date_from && { date_from: filters.date_from }),
         ...(filters.date_to && { date_to: filters.date_to }),
       });
@@ -70,7 +88,6 @@ function AuditLogPage() {
       ...filters,
       [e.target.name]: e.target.value,
     });
-    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const resetFilters = () => {
@@ -80,6 +97,7 @@ function AuditLogPage() {
       date_from: "",
       date_to: "",
     });
+    setDebouncedUser("");
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
@@ -90,7 +108,7 @@ function AuditLogPage() {
         page: 1,
         page_size: 10000,
         ...(filters.action && { action: filters.action }),
-        ...(filters.user && { user: filters.user }),
+        ...(debouncedUser && { user: debouncedUser }),
         ...(filters.date_from && { date_from: filters.date_from }),
         ...(filters.date_to && { date_to: filters.date_to }),
       });
@@ -138,7 +156,7 @@ function AuditLogPage() {
     return "bg-gray-50 text-gray-700";
   };
 
-  if (loading) {
+  if (loading && logs.length === 0) {
     return (
       <AdminLayout>
         <div className="flex justify-center items-center h-64">
@@ -206,6 +224,9 @@ function AuditLogPage() {
                 placeholder="Search by email..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
+              {filters.user && filters.user !== debouncedUser && (
+                <p className="text-xs text-gray-400 mt-1">Searching...</p>
+              )}
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">Date From</label>

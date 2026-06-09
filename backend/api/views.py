@@ -38,6 +38,17 @@ import pandas as pd
 import joblib
 import os
 from django.conf import settings
+from django.core.management import call_command
+from django.core.management.base import CommandError
+from io import StringIO
+import tempfile
+import csv
+import io
+from datetime import datetime
+from django.db.models import Q
+from django.http import HttpResponse
+from rest_framework.pagination import PageNumberPagination
+
 
 
 class HealthCheckView(APIView):
@@ -49,11 +60,110 @@ class HealthCheckView(APIView):
             'message': 'API is running',
             'version': '1.0.0'
         })
-    
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 class CitizenListView(generics.ListAPIView):
-    queryset = Citizen.objects.all()
     serializer_class = CitizenSerializer
     permission_classes = [AllowAny]
+    pagination_class = StandardResultsSetPagination  # Add this line
+    
+    def get_queryset(self):
+        queryset = Citizen.objects.all()
+        
+        # Apply filters
+        search = self.request.query_params.get('search')
+        district = self.request.query_params.get('district')
+        gender = self.request.query_params.get('gender')
+        is_registered = self.request.query_params.get('is_registered')
+        
+        if search:
+            queryset = queryset.filter(
+                Q(citizenship_number__icontains=search) |
+                Q(full_name__icontains=search)
+            )
+        if district:
+            queryset = queryset.filter(district__iexact=district)
+        if gender:
+            queryset = queryset.filter(gender=gender)
+        if is_registered:
+            if is_registered.lower() == 'true':
+                queryset = queryset.filter(is_registered=True)
+            elif is_registered.lower() == 'false':
+                queryset = queryset.filter(is_registered=False)
+        
+        return queryset
+    
+    def list(self, request, *args, **kwargs):
+        # Check if export is requested
+        export = request.query_params.get('export')
+        
+        if export == 'csv':
+            return self.export_csv(request)
+        
+        # Regular paginated response
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        # Handle IDs filter for selected export
+        ids = request.query_params.get('ids')
+        if ids:
+            id_list = [int(id) for id in ids.split(',')]
+            queryset = queryset.filter(id__in=id_list)
+            # For selected export, return all without pagination
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        
+        # Apply pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    def export_csv(self, request):
+        """Export citizens as CSV"""
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        # Handle IDs filter for selected export
+        ids = request.query_params.get('ids')
+        if ids:
+            id_list = [int(id) for id in ids.split(',')]
+            queryset = queryset.filter(id__in=id_list)
+        
+        # Create CSV response
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="citizens_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+        
+        writer = csv.writer(response)
+        
+        writer.writerow([
+            'Citizenship Number', 'Full Name', 'Date of Birth', 'Gender',
+            'District', 'Municipality', 'Ward Number', 'Father Name', 
+            'Mother Name', 'Eligible', 'Registered', 'Created At'
+        ])
+        
+        for citizen in queryset:
+            writer.writerow([
+                citizen.citizenship_number,
+                citizen.full_name,
+                citizen.date_of_birth,
+                citizen.get_gender_display(),
+                citizen.district,
+                citizen.municipality,
+                citizen.ward_number,
+                citizen.father_name,
+                citizen.mother_name,
+                'Yes' if citizen.is_eligible else 'No',
+                'Yes' if citizen.is_registered else 'No',
+                citizen.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            ])
+        
+        return response
 
 class CitizenDetailView(generics.RetrieveAPIView):
     queryset = Citizen.objects.all()
@@ -450,7 +560,20 @@ class ElectionListView(generics.ListCreateAPIView):
         return [AllowAny()]
     
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        election = serializer.save(created_by=self.request.user)
+        
+        # Add audit log
+        AuditLog.objects.create(
+            user=self.request.user,
+            action='election_created',
+            details={
+                'election_id': election.id,
+                'election_title': election.title,
+                'start_datetime': str(election.start_datetime),
+                'end_datetime': str(election.end_datetime)
+            },
+            ip_address=self.request.META.get('REMOTE_ADDR')
+        )
 
 class ElectionDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Election.objects.all()
@@ -469,6 +592,36 @@ class ElectionDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method == 'GET':
             return [AllowAny()]
         return [IsAuthenticated(), IsAdminUser()]
+    
+    def perform_update(self, serializer):
+        election = serializer.save()
+        
+        AuditLog.objects.create(
+            user=self.request.user,
+            action='election_updated',
+            details={
+                'election_id': election.id,
+                'election_title': election.title,
+                'changes': 'Election details updated'
+            },
+            ip_address=self.request.META.get('REMOTE_ADDR')
+        )
+    
+    def perform_destroy(self, instance):
+        election_title = instance.title
+        election_id = instance.id
+        
+        AuditLog.objects.create(
+            user=self.request.user,
+            action='election_deleted',
+            details={
+                'election_id': election_id,
+                'election_title': election_title
+            },
+            ip_address=self.request.META.get('REMOTE_ADDR')
+        )
+        
+        instance.delete()
 
 class ActiveElectionsView(APIView):
     """Get currently active elections"""
@@ -544,6 +697,20 @@ class CandidateListView(generics.ListCreateAPIView):
         election = Election.objects.get(id=election_id)
         serializer.save(election=election)
 
+        candidate = serializer.save()
+        
+        AuditLog.objects.create(
+            user=self.request.user,
+            action='candidate_created',
+            details={
+                'candidate_id': candidate.id,
+                'candidate_name': candidate.name,
+                'election_id': candidate.election.id,
+                'election_title': candidate.election.title
+            },
+            ip_address=self.request.META.get('REMOTE_ADDR')
+        )
+
 class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Get, update or delete candidate by ID"""
     
@@ -558,6 +725,36 @@ class CandidateDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method == 'GET':
             return [AllowAny()]
         return [IsAuthenticated(), IsAdminUser()]
+    def perform_update(self, serializer):
+        candidate = serializer.save()
+        
+        AuditLog.objects.create(
+            user=self.request.user,
+            action='candidate_updated',
+            details={
+                'candidate_id': candidate.id,
+                'candidate_name': candidate.name,
+                'election_id': candidate.election.id
+            },
+            ip_address=self.request.META.get('REMOTE_ADDR')
+        )
+    
+    def perform_destroy(self, instance):
+        candidate_name = instance.name
+        candidate_id = instance.id
+        
+        AuditLog.objects.create(
+            user=self.request.user,
+            action='candidate_deleted',
+            details={
+                'candidate_id': candidate_id,
+                'candidate_name': candidate_name,
+                'election_id': instance.election.id
+            },
+            ip_address=self.request.META.get('REMOTE_ADDR')
+        )
+        
+        instance.delete()
 
 # Voting Views
 class CastVoteView(APIView):
@@ -1375,3 +1572,193 @@ class PCADataView(APIView):
             })
         except Exception as e:
             return Response({'status': 'error', 'message': str(e)}, status=500)
+
+class ImportCitizensView(APIView):
+    """Import citizens from CSV file"""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        if not request.user.is_admin and not request.user.is_staff:
+            return Response({
+                'status': 'error',
+                'message': 'Admin access required'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        if 'file' not in request.FILES:
+            return Response({
+                'status': 'error',
+                'message': 'No file uploaded'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        csv_file = request.FILES['file']
+        
+        # Accept both .csv and .xlsx? For now, only CSV
+        if not csv_file.name.endswith('.csv'):
+            return Response({
+                'status': 'error',
+                'message': 'File must be CSV format. Please convert your Excel file to CSV first.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Parse CSV file
+            decoded_file = csv_file.read().decode('utf-8')
+            io_string = io.StringIO(decoded_file)
+            reader = csv.DictReader(io_string)
+            
+            imported_count = 0
+            skipped_count = 0
+            errors = []
+            
+            # Get the actual headers from the CSV (case-insensitive mapping)
+            fieldnames = reader.fieldnames
+            if not fieldnames:
+                return Response({
+                    'status': 'error',
+                    'message': 'CSV file has no headers'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create mapping for case-insensitive column matching
+            col_map = {}
+            for field in fieldnames:
+                normalized = field.lower().strip().replace(' ', '_')
+                col_map[normalized] = field
+            
+            # Check required columns
+            required = ['citizenship_number', 'full_name', 'date_of_birth', 'district', 'municipality', 'ward_number', 'gender']
+            missing = []
+            for req in required:
+                if req not in col_map:
+                    missing.append(req)
+            
+            if missing:
+                return Response({
+                    'status': 'error',
+                    'message': f'Missing required columns: {", ".join(missing)}\n\nYour CSV has: {", ".join(fieldnames)}\n\nPlease ensure column names match exactly (case-sensitive): citizenship_number, full_name, date_of_birth, district, municipality, ward_number, gender'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            for row_num, row in enumerate(reader, start=2):
+                try:
+                    # Get values using mapped columns
+                    citizenship_number = row.get(col_map['citizenship_number'], '').strip()
+                    full_name = row.get(col_map['full_name'], '').strip()
+                    dob_str = row.get(col_map['date_of_birth'], '').strip()
+                    district = row.get(col_map['district'], '').strip()
+                    municipality = row.get(col_map['municipality'], '').strip()
+                    ward_str = row.get(col_map['ward_number'], '').strip()
+                    gender = row.get(col_map['gender'], '').strip().upper()
+                    
+                    # Validate required fields
+                    if not citizenship_number:
+                        errors.append(f"Row {row_num}: Citizenship number is required")
+                        skipped_count += 1
+                        continue
+                    
+                    if not full_name:
+                        errors.append(f"Row {row_num}: Full name is required")
+                        skipped_count += 1
+                        continue
+                    
+                    # Parse date
+                    try:
+                        dob = datetime.strptime(dob_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        errors.append(f"Row {row_num}: Invalid date format '{dob_str}'. Use YYYY-MM-DD")
+                        skipped_count += 1
+                        continue
+                    
+                    # Validate gender
+                    gender = gender.upper()
+                    if gender not in ['M', 'F', 'O', 'MALE', 'FEMALE', 'OTHER']:
+                        errors.append(f"Row {row_num}: Invalid gender '{gender}'. Use M, F, or O")
+                        skipped_count += 1
+                        continue
+                    
+                    # Convert gender to M/F/O
+                    if gender in ['MALE']:
+                        gender = 'M'
+                    elif gender in ['FEMALE']:
+                        gender = 'F'
+                    elif gender in ['OTHER']:
+                        gender = 'O'
+                    
+                    # Calculate age
+                    today = datetime.now().date()
+                    age = today.year - dob.year
+                    if today.month < dob.month or (today.month == dob.month and today.day < dob.day):
+                        age -= 1
+                    
+                    # Check if citizen exists
+                    existing = Citizen.objects.filter(citizenship_number=citizenship_number).first()
+                    if existing:
+                        errors.append(f"Row {row_num}: Citizenship {citizenship_number} already exists")
+                        skipped_count += 1
+                        continue
+                    
+                    # Get optional fields
+                    father_name = row.get(col_map.get('father_name', 'father_name'), '').strip() if 'father_name' in col_map else ''
+                    mother_name = row.get(col_map.get('mother_name', 'mother_name'), '').strip() if 'mother_name' in col_map else ''
+                    
+                    # Create citizen
+                    Citizen.objects.create(
+                        citizenship_number=citizenship_number,
+                        full_name=full_name,
+                        date_of_birth=dob,
+                        gender=gender,
+                        district=district,
+                        municipality=municipality,
+                        ward_number=int(ward_str) if ward_str.isdigit() else 0,
+                        father_name=father_name,
+                        mother_name=mother_name,
+                        is_eligible=age >= 18,
+                        is_registered=False
+                    )
+                    imported_count += 1
+                    
+                except Exception as e:
+                    skipped_count += 1
+                    errors.append(f"Row {row_num}: {str(e)}")
+            
+            # Create audit log
+            AuditLog.objects.create(
+                user=request.user,
+                action='import_citizens',
+                details={
+                    'filename': csv_file.name,
+                    'imported': imported_count,
+                    'skipped': skipped_count,
+                    'total': imported_count + skipped_count
+                },
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+            
+            return Response({
+                'status': 'success',
+                'message': f'Import completed: {imported_count} imported, {skipped_count} skipped',
+                'data': {
+                    'total': imported_count + skipped_count,
+                    'imported': imported_count,
+                    'skipped': skipped_count,
+                    'errors': errors[:20]  # Return first 20 errors
+                }
+            })
+            
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class BulkDeleteCitizensView(APIView):
+    """Bulk delete citizens"""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        if not request.user.is_admin and not request.user.is_staff:
+            return Response({'status': 'error', 'message': 'Admin access required'}, status=403)
+        
+        ids = request.data.get('ids', [])
+        if not ids:
+            return Response({'status': 'error', 'message': 'No IDs provided'}, status=400)
+        
+        deleted = Citizen.objects.filter(id__in=ids).delete()
+        return Response({'status': 'success', 'deleted': deleted[0]})

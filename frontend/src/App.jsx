@@ -19,8 +19,9 @@ import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AuditLogPage from "./pages/AuditLogPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminElections from "./pages/admin/AdminElections";
-import VoterRoute from './components/VoterRoute';
-import AnalyticsDashboardPage from './pages/AnalyticsDashboardPage';
+import VoterRoute from "./components/VoterRoute";
+import AnalyticsDashboardPage from "./pages/AnalyticsDashboardPage";
+import AdminCitizens from "./pages/admin/AdminCitizens";
 
 function App() {
   return (
@@ -138,6 +139,14 @@ function App() {
           }
         />
         <Route
+          path="/admin/citizens"
+          element={
+            <PrivateRoute requireAdmin={true}>
+              <AdminCitizens />
+            </PrivateRoute>
+          }
+        />
+        <Route
           path="/admin/audit-logs"
           element={
             <PrivateRoute requireAdmin={true}>
@@ -146,13 +155,13 @@ function App() {
           }
         />
         <Route
-  path="/admin/analytics"
-  element={
-    <PrivateRoute requireAdmin={true}>
-      <AnalyticsDashboardPage />
-    </PrivateRoute>
-  }
-/>
+          path="/admin/analytics"
+          element={
+            <PrivateRoute requireAdmin={true}>
+              <AnalyticsDashboardPage />
+            </PrivateRoute>
+          }
+        />
 
         {/* Backup Admin Route (Old Dashboard) */}
         <Route

@@ -1,9 +1,11 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
+    BulkDeleteCitizensView,
     HealthCheckView,
     CitizenListView,
     CitizenDetailView,
+    ImportCitizensView,
     PCADataView,
     VerifyCitizenshipView,
     RegisterView,
@@ -93,4 +95,7 @@ urlpatterns = [
     path('analytics/data/', AnalyticsDataView.as_view(), name='analytics-data'),
     path('analytics/run/', RunAnalyticsView.as_view(), name='run-analytics'),
     path('analytics/pca/', PCADataView.as_view(), name='pca-data'),
+
+    path('citizens/import/', ImportCitizensView.as_view(), name='import-citizens'),
+    path('citizens/bulk-delete/', BulkDeleteCitizensView.as_view(), name='bulk-delete-citizens'),
 ]
