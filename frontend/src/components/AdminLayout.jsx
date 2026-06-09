@@ -24,7 +24,6 @@ function AdminLayout({ children }) {
   const [adminUser, setAdminUser] = useState(null);
 
   useEffect(() => {
-    // Check if admin is logged in
     const isAdmin = localStorage.getItem('is_admin') === 'true';
     const adminToken = localStorage.getItem('admin_access_token');
     const adminUserStr = localStorage.getItem('admin_user');
@@ -42,24 +41,32 @@ function AdminLayout({ children }) {
   const navItems = [
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
     { name: 'Elections', path: '/admin/elections', icon: Vote },
-    { name: 'Candidates', path: '/admin/candidates', icon: Users },
     { name: 'Citizens', path: '/admin/citizens', icon: UserCog },
     { name: 'Analytics', path: '/admin/analytics', icon: BarChart3 },
     { name: 'Audit Logs', path: '/admin/audit-logs', icon: Activity },
   ];
 
-  const isActive = (path) => location.pathname === path;
+  // Check if a path is active (handles sub-routes like /admin/elections/123/candidates)
+  const isActive = (path) => {
+    if (path === '/admin') {
+      return location.pathname === '/admin';
+    }
+    if (path === '/admin/elections') {
+      return location.pathname.startsWith('/admin/elections');
+    }
+    return location.pathname === path;
+  };
 
-const handleLogout = () => {
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
-  localStorage.removeItem("user");
-  localStorage.removeItem("admin_access_token");
-  localStorage.removeItem("admin_refresh_token");
-  localStorage.removeItem("admin_user");
-  localStorage.removeItem("is_admin");
-  navigate("/admin-login");
-};
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("admin_access_token");
+    localStorage.removeItem("admin_refresh_token");
+    localStorage.removeItem("admin_user");
+    localStorage.removeItem("is_admin");
+    navigate("/admin-login");
+  };
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);

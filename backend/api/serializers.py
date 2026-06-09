@@ -218,24 +218,51 @@ class ElectionCreateUpdateSerializer(serializers.ModelSerializer):
 
 class CandidateListSerializer(serializers.ModelSerializer):
     photo_url = serializers.SerializerMethodField()
+    symbol_url = serializers.SerializerMethodField()
     
     class Meta:
         model = Candidate
-        fields = ['id', 'name', 'party', 'symbol', 'position', 'photo_url', 'display_order']
+        fields = ['id', 'name', 'party', 'symbol', 'symbol_url', 'position', 'bio', 'photo_url', 'display_order']
     
     def get_photo_url(self, obj):
-        if obj.photo:
+        if obj.photo and obj.photo.url:
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.photo.url)
             return obj.photo.url
         return None
     
+    def get_symbol_url(self, obj):
+        if obj.symbol and obj.symbol.url:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.symbol.url)
+            return obj.symbol.url
+        return None
+
 class CandidateDetailSerializer(serializers.ModelSerializer):
+    photo_url = serializers.SerializerMethodField()
+    symbol_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = Candidate
-        fields = '__all__'
-        read_only_fields = ['id', 'created_at','updated_at']
+        fields = ['id', 'name', 'party', 'bio', 'position', 'symbol', 'photo', 'photo_url', 'symbol_url', 'display_order', 'election']
+    
+    def get_photo_url(self, obj):
+        if obj.photo and obj.photo.url:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.photo.url)
+            return obj.photo.url
+        return None
+    
+    def get_symbol_url(self, obj):
+        if obj.symbol:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.symbol.url)
+            return obj.symbol.url
+        return None
 
 class CandidateCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:

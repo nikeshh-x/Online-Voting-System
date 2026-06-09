@@ -21,7 +21,11 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminElections from "./pages/admin/AdminElections";
 import VoterRoute from "./components/VoterRoute";
 import AnalyticsDashboardPage from "./pages/AnalyticsDashboardPage";
+<<<<<<< HEAD
 import AdminCitizens from "./pages/admin/AdminCitizens";
+=======
+import AdminCandidates from "./pages/admin/AdminCandidates";
+>>>>>>> feature/admin-election-candidate-crud
 
 function App() {
   return (
@@ -143,6 +147,14 @@ function App() {
           element={
             <PrivateRoute requireAdmin={true}>
               <AdminCitizens />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/elections/:electionId/candidates"
+          element={
+            <PrivateRoute requireAdmin={true}>
+              <AdminCandidates />
             </PrivateRoute>
           }
         />
